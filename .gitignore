@@ -3,3 +3,5 @@ conanbuildinfo.txt
 conaninfo.txt
 graph_info.json
 conan.lock
+.cache/
+compile_commands.json
