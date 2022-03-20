@@ -1,0 +1,22 @@
+{
+  "$schema": "https://puremourning.github.io/vimspector/schema/vimspector.schema.json",
+  "configurations": {
+    "Run": {
+      "adapter": "CodeLLDB",
+      "variables": [
+        {
+          "build_dir": "${workspaceRoot}/${Configuration:cmake-build-debug}"
+        },
+        {
+          "make": {
+            "shell": "make -sC ${build_dir}"
+          }
+        }
+      ],
+      "configuration": {
+        "request": "launch",
+        "program": "${build_dir}/src/ycmd"
+      }
+    }
+  }
+}
