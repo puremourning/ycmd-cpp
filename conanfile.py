@@ -20,11 +20,10 @@ class YcmdConan(ConanFile):
     exports_sources = "CMakeLists.txt", "src/*"
 
     # Requirements
-    requires = ( "Boost/1.78.0" )
+    requires = ( "boost/1.78.0" )
 
     def layout(self):
         cmake_layout(self)
-        del self.cpp.source.includedirs
 
     def generate(self):
         CMakeToolchain(self).generate()
