@@ -31,5 +31,6 @@ endif()
 target_link_libraries( ycmd
   PRIVATE
     Boost::boost
+    Boost::log
 )
 
