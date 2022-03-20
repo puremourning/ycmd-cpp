@@ -9,16 +9,28 @@
 #include <boost/asio/co_spawn.hpp>
 
 #include <boost/asio/this_coro.hpp>
+#include <boost/asio/use_awaitable.hpp>
 #include <boost/beast/core.hpp>
+#include <boost/beast/core/flat_buffer.hpp>
+#include <boost/beast/core/tcp_stream.hpp>
+#include <boost/beast/http.hpp>
 #include <boost/beast/core/error.hpp>
 
+#include <boost/beast/http/error.hpp>
+#include <boost/beast/http/message.hpp>
+#include <boost/beast/http/read.hpp>
+#include <boost/beast/http/string_body.hpp>
 #include <boost/log/trivial.hpp>
 
 #include <boost/system/detail/error_code.hpp>
+#include <boost/system/system_error.hpp>
 #include <iostream>
+#include <system_error>
 
 namespace asio = boost::asio;
 namespace beast = boost::beast;
+namespace http = beast::http;
+
 using tcp = asio::ip::tcp;
 
 #define LOG BOOST_LOG_TRIVIAL
@@ -29,24 +41,6 @@ namespace ycmd::server
   {
     LOG(fatal) << ec.message();
     abort();
-  }
-
-  asio::awaitable<void> listen( tcp::endpoint endpoint )
-  {
-    beast::error_code ec;
-    tcp::acceptor acceptor( co_await asio::this_coro::executor );
-    if ( acceptor.open( endpoint.protocol(), ec ) ||
-         acceptor.set_option( asio::socket_base::reuse_address( true ), ec ) ||
-         acceptor.listen( asio::socket_base::max_listen_connections, ec ) )
-    {
-      co_return server_abort( ec );
-    }
-
-    for( ;; )
-    {
-      tcp::socket socket( co_await asio::this_coro::executor );
-      
-    }
   }
 
   template< typename... Ts >
@@ -61,7 +55,49 @@ namespace ycmd::server
       catch ( const std::exception& e )
       {
         LOG(fatal) << "Unhandled exception! " << e.what();
+        abort();
       }
+    }
+    // otherwise, ignore the result Ts...
+  }
+
+  asio::awaitable<void> handle_session( tcp::socket socket )
+  {
+    auto stream = beast::tcp_stream( std::move( socket ) );
+    beast::flat_buffer buffer;
+
+    for ( ;; )
+    {
+      http::request<http::string_body> req;
+      try
+      {
+        co_await http::async_read( stream,
+                                   buffer,
+                                   req,
+                                   asio::use_awaitable );
+
+        LOG(info) << "Get a request:\n"
+                  << req.method()
+                  << " "
+                  << req.target();
+
+      }
+      catch( const boost::system::system_error &e )
+      {
+        LOG(info) << "Got an error: " << e.code() << " = " << e.what();
+        break;
+      }
+    }
+  }
+
+  asio::awaitable<void> listen( tcp::acceptor& acceptor )
+  {
+    for( ;; )
+    {
+      asio::co_spawn( acceptor.get_executor(),
+                      handle_session(
+                        co_await acceptor.async_accept( asio::use_awaitable ) ),
+                      handle_unexpected_exception<> );
     }
   }
 }
@@ -69,10 +105,10 @@ namespace ycmd::server
 int main()
 {
   asio::io_context ctx;
-  tcp::endpoint listen( asio::ip::address_v4(), 1337 );
-
+  tcp::acceptor acceptor( ctx, { tcp::v4(), 1337 } );
   asio::co_spawn( ctx,
-                  ycmd::server::listen( std::move( listen ) ),
+                  ycmd::server::listen( acceptor ),
                   ycmd::server::handle_unexpected_exception<> );
 
+  ctx.run();
 }
