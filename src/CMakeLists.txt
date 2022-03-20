@@ -2,7 +2,7 @@ add_executable( ycmd )
 
 # set( SOURCES script.cpp source_location.cpp index.cpp db.cpp )
 
-target_sources( analyzer
+target_sources( ycmd
   PRIVATE
     ycmd.cpp
     # ${SOURCES}
@@ -17,27 +17,19 @@ target_sources( analyzer
 # )
 
 if ( MSVC )
-  target_compile_options( analyzer
+  target_compile_options( ycmd
     PRIVATE
       /W4 /WX
   )
 else()
-  target_compile_options( analyzer
+  target_compile_options( ycmd
     PRIVATE
       -Wall -Wextra -Werror
   )
 endif()
 
-target_include_directories( analyzer
+target_link_libraries( ycmd
   PRIVATE
-    Boost::Asio
-    Boost::FileSystem
-    Boost::Process
-)
-target_link_libraries( analyzer
-  PRIVATE
-    Boost::Asio
-    Boost::FileSystem
-    Boost::Process
+    Boost::boost
 )
 

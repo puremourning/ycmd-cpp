@@ -21,8 +21,12 @@ set( CMAKE_CXX_STANDARD_REQUIRED True )
 # Always generate compilation database
 set( CMAKE_EXPORT_COMPILE_COMMANDS ON )
 
-# Find TCL
-find_package(Boost REQUIRED)
+find_package(Boost REQUIRED
+  COMPONENTS
+    beast
+    filesystem
+    process
+)
 
 # Controlling the flags for debug/release is per-config, not per-target (and
 # necessarily per-compiler)
