@@ -24,7 +24,7 @@ if ( MSVC )
 else()
   target_compile_options( ycmd
     PRIVATE
-      -Wall -Wextra -Werror
+      -Wall -Wextra -Werror -fvisibility=hidden
   )
 endif()
 
@@ -32,5 +32,6 @@ target_link_libraries( ycmd
   PRIVATE
     Boost::boost
     Boost::log
+    nlohmann_json::nlohmann_json
 )
 

@@ -16,7 +16,7 @@ project( ycmd
 # All of this project uses c++17 and we certainly don't want random extensions
 set( CMAKE_CXX_STANDARD 20 )
 set( CMAKE_CXX_EXTENSIONS OFF )
-set( CMAKE_CXX_STANDARD_REQUIRED True )
+set( CMAKE_CXX_STANDARD_REQUIRED ON )
 
 # Always generate compilation database
 set( CMAKE_EXPORT_COMPILE_COMMANDS ON )
@@ -28,13 +28,7 @@ find_package(Boost REQUIRED
     process
 )
 
-# Controlling the flags for debug/release is per-config, not per-target (and
-# necessarily per-compiler)
-if ( NOT MSVC )
-  set( CMAKE_CXX_FLAGS_DEBUG "-g -O0 -fno-omit-frame-pointer" )
-  set( CMAKE_CXX_FLAGS_RELEASE "-O2" )
-  set( CMAKE_CXX_FLAGS_RELWITHDEBINFO "-g -O2" )
-endif()
+find_package(nlohmann_json REQUIRED)
 
 # add the executable
 add_subdirectory(src)

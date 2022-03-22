@@ -5,3 +5,4 @@ graph_info.json
 conan.lock
 .cache/
 compile_commands.json
+Session.vim

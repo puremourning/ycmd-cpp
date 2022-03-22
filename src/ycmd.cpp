@@ -1,3 +1,6 @@
+#include "ycmd.h"
+#include "handlers.cpp"
+
 #include <boost/asio/awaitable.hpp>
 #include <boost/asio/ip/address_v4.hpp>
 #include <boost/asio/ip/tcp.hpp>
@@ -16,24 +19,19 @@
 #include <boost/beast/http.hpp>
 #include <boost/beast/core/error.hpp>
 
+#include <boost/beast/http/empty_body.hpp>
 #include <boost/beast/http/error.hpp>
 #include <boost/beast/http/message.hpp>
 #include <boost/beast/http/read.hpp>
+#include <boost/beast/http/status.hpp>
 #include <boost/beast/http/string_body.hpp>
+#include <boost/beast/http/write.hpp>
 #include <boost/log/trivial.hpp>
 
 #include <boost/system/detail/error_code.hpp>
 #include <boost/system/system_error.hpp>
 #include <iostream>
 #include <system_error>
-
-namespace asio = boost::asio;
-namespace beast = boost::beast;
-namespace http = beast::http;
-
-using tcp = asio::ip::tcp;
-
-#define LOG BOOST_LOG_TRIVIAL
 
 namespace ycmd::server
 {
@@ -66,27 +64,44 @@ namespace ycmd::server
     auto stream = beast::tcp_stream( std::move( socket ) );
     beast::flat_buffer buffer;
 
-    for ( ;; )
+    Request req;
+    try
     {
-      http::request<http::string_body> req;
-      try
-      {
-        co_await http::async_read( stream,
-                                   buffer,
-                                   req,
-                                   asio::use_awaitable );
+      co_await http::async_read( stream,
+                                 buffer,
+                                 req,
+                                 asio::use_awaitable );
 
-        LOG(info) << "Get a request:\n"
+      auto handler = handlers::HANDLERS.find(
+        { req.method(), { req.target().data(), req.target().length() } } );
+
+      Response response;
+      if ( handler == handlers::HANDLERS.end() )
+      {
+        LOG(info) << "No handler for "
                   << req.method()
                   << " "
                   << req.target();
 
+        response.result(http::status::not_found);
       }
-      catch( const boost::system::system_error &e )
+      else
       {
-        LOG(info) << "Got an error: " << e.code() << " = " << e.what();
-        break;
+        LOG(info) << "Handling request "
+                  << req.method()
+                  << " "
+                  << req.target();
+
+        response = handler->second( req );
       }
+
+      co_await http::async_write( stream,
+                                  response,
+                                  asio::use_awaitable );
+    }
+    catch( const boost::system::system_error &e )
+    {
+      LOG(info) << "Got an error: " << e.code() << " = " << e.what();
     }
   }
 
@@ -110,5 +125,6 @@ int main()
                   ycmd::server::listen( acceptor ),
                   ycmd::server::handle_unexpected_exception<> );
 
+  // TODO: spin up a handful of threads to handle stuff too
   ctx.run();
 }
