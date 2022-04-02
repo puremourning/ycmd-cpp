@@ -20,7 +20,11 @@ class YcmdConan(ConanFile):
     exports_sources = "CMakeLists.txt", "src/*"
 
     # Requirements
-    requires = ( "boost/1.78.0", "nlohmann_json/3.10.5" )
+    requires = (
+      "boost/1.78.0",
+      "nlohmann_json/3.10.5",
+      "abseil/20211102.0",
+    )
 
     def layout(self):
         cmake_layout(self)

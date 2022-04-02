@@ -1,20 +1,21 @@
+add_subdirectory( core )
 add_executable( ycmd )
 
-# set( SOURCES script.cpp source_location.cpp index.cpp db.cpp )
+set( SOURCES handlers.cpp api.h )
 
 target_sources( ycmd
   PRIVATE
     ycmd.cpp
-    # ${SOURCES}
+    ${SOURCES}
 )
 
 # This enables unity build (ish), by pretending that these source files are
 # header files
-# set_source_files_properties(
-#   ${SOURCES}
-#   PROPERTIES
-#     HEADER_FILE_ONLY ON
-# )
+set_source_files_properties(
+  ${SOURCES}
+  PROPERTIES
+    HEADER_FILE_ONLY ON
+)
 
 if ( MSVC )
   target_compile_options( ycmd
@@ -30,6 +31,7 @@ endif()
 
 target_link_libraries( ycmd
   PRIVATE
+    YcmCore
     Boost::boost
     Boost::log
     nlohmann_json::nlohmann_json
