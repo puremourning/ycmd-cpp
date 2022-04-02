@@ -1,0 +1,10 @@
+---
+
+CompileFlags:
+  Add: [ '-Wno-deprecated-experimental-coroutine' ]
+Diagnostics:
+  UnusedIncludes: Strict
+Hover:
+  ShowAKA: Yes
+
+# vim: ft=yaml
