@@ -17,23 +17,50 @@
 namespace ycmd::handlers {
   namespace http = boost::beast::http;
 
-  Response handle_ping( const Request& req );
+  Response handle_healthy( const Request& req );
+  Response handle_ready( const Request& req );
   Response handle_get_completions( const Request& req );
 
   std::unordered_map<Target,Handler,boost::hash<Target>> HANDLERS = {
-    { { http::verb::get,  "/ping" },            handle_ping },
+    { { http::verb::get,  "/healthy" },          handle_healthy },
+    { { http::verb::get,  "/ready" },            handle_ready },
+
     { { http::verb::post, "/get_completions" }, handle_get_completions },
   };
 
-  Response handle_ping( const Request& req )
+  /**
+   * Return a HTTP OK with the supplied JSON payload
+   */
+  Response json_response( const json& j )
   {
-    boost::ignore_unused(req);
-
     Response rep;
     rep.result(http::status::ok);
-    rep.body() = "pong";
+    rep.body() = j.dump();
     rep.prepare_payload();
     return rep;
+  }
+
+  /**
+   * Parse a HTTP request into a struct.
+   *
+   * @param TRequest type to parse into
+   */
+  template<typename TRequest>
+  TRequest json_requst( const Request& req )
+  {
+    return json::parse( req.body() ).get<TRequest>();
+  }
+
+  Response handle_healthy( const Request& req )
+  {
+    boost::ignore_unused( req );
+    return json_response( true );
+  }
+
+  Response handle_ready( const Request& req )
+  {
+    boost::ignore_unused( req );
+    return json_response( true );
   }
 
   Response handle_get_completions( const Request& req )
