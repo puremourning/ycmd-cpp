@@ -17,9 +17,10 @@
 #include <string>
 #include <string_view>
 #include <tuple>
+#include <type_traits>
 #include <unordered_map>
+#include <utility>
 #include <vector>
-#include <ranges>
 #include <algorithm>
 
 namespace ycmd::handlers {
@@ -77,60 +78,83 @@ namespace ycmd::handlers {
 
   Response handle_filter_and_sort_candidates( const Request& req )
   {
+    // FIXME: Unfortuantely, this is really inefficent. It does _tons_ of
+    // copies. It might actually be better to use the json _directly_ rather
+    // than try and parse it into a struct with a variant. Or alternatively,
+    // just store a json ref in the request struct.
     auto [ request_data, _ ] =
       json_request<requests::FilterAndSortCandidatesRequest>( req );
 
-#if 0
-    auto sort_property = request_data.sort_property.value_or(
-      "insertion_text" );
+    auto GetResults = [&, &request_data=request_data](
+      const auto& candidates ) {
 
-    if ( sort_property == "insertion_text" ) {
-    } else {
-      return YouCompleteMe::Repository<YouCompleteMe::Candidate>::Instance().GetElements(
-        request_data.candidates );
-    }
-#endif
+      using T = std::remove_cvref_t<decltype(candidates)>;
 
-    std::vector<std::string> strings;
-    strings.reserve( request_data.candidates.size() );
-    for( const auto& c : request_data.candidates ) {
-      strings.push_back( c.insertion_text );
-    }
-
-    using namespace YouCompleteMe;
-    auto repository_candidates = Repository<Candidate>::Instance().GetElements(
-      std::move(strings) );
-
-    std::vector< ResultAnd< size_t > > result_and_objects;
-    Word query_object( std::move( request_data.query ) );
-
-    for ( size_t i = 0; i < request_data.candidates.size(); ++i ) {
-      const Candidate *candidate = repository_candidates[ i ];
-
-      if ( candidate->IsEmpty() || !candidate->ContainsBytes( query_object ) ) {
-        continue;
+      std::vector<std::string> strings;
+      strings.reserve( candidates.size() );
+      for( const auto& c : candidates ) {
+        if constexpr ( std::is_same_v< typename T::value_type, std::string > ) {
+          strings.push_back( c );
+        } else if constexpr ( std::is_same_v< typename T::value_type, json > ) {
+          strings.push_back( c.at( request_data.sort_property.value_or(
+                "insertion_text" ) ) );
+        } else {
+          strings.push_back( c.insertion_text );
+        }
       }
 
-      Result result = candidate->QueryMatchResult( query_object );
+      using namespace YouCompleteMe;
+      auto repository_candidates =
+        Repository<Candidate>::Instance().GetElements( std::move(strings) );
 
-      if ( result.IsSubsequence() ) {
-        result_and_objects.emplace_back( result, i );
+      std::vector< ResultAnd< size_t > > result_and_objects;
+      Word query_object( std::move( request_data.query ) );
+
+      for ( size_t i = 0; i < candidates.size(); ++i ) {
+        const Candidate *candidate = repository_candidates[ i ];
+
+        if ( candidate->IsEmpty() ||
+             !candidate->ContainsBytes( query_object ) ) {
+          continue;
+        }
+
+        Result result = candidate->QueryMatchResult( query_object );
+
+        if ( result.IsSubsequence() ) {
+          result_and_objects.emplace_back( result, i );
+        }
       }
-    }
-    constexpr auto MAX_CANDIDATES = 0;
-    PartialSort( result_and_objects, MAX_CANDIDATES );
+      constexpr auto MAX_CANDIDATES = 0;
+      PartialSort( result_and_objects, MAX_CANDIDATES );
 
-    // Now we have a sorted/filtered list of YCM-land Candidates paired with
-    // their index in the input. We return a vector of the original input
-    // indices matching.
-    std::vector<api::Candidate> filtered_candidates;
-    filtered_candidates.reserve( result_and_objects.size() );
-    for ( const auto& r : result_and_objects ) {
-      filtered_candidates.push_back(
-        request_data.candidates[ r.extra_object_ ] );
+      // Now we have a sorted/filtered list of YCM-land Candidates paired with
+      // their index in the input. We return a vector of the original input
+      // indices matching.
+      std::remove_cvref_t<decltype(candidates)> filtered_candidates;
+
+      filtered_candidates.reserve( result_and_objects.size() );
+      for ( const auto& r : result_and_objects ) {
+        filtered_candidates.push_back(
+          candidates[ r.extra_object_ ] );
+      }
+
+      return json_response( filtered_candidates );
+    };
+
+    switch( request_data.candidate_type )
+    {
+    case requests::FilterAndSortCandidatesRequest::CandidateType::CANDIDATES:
+      return GetResults( std::get<std::vector<api::Candidate>>(
+          request_data.candidates ) );
+    case requests::FilterAndSortCandidatesRequest::CandidateType::STRINGS:
+      return GetResults( std::get<std::vector<std::string>>(
+          request_data.candidates ) );
+    case requests::FilterAndSortCandidatesRequest::CandidateType::UNKNOWN:
+      return GetResults( std::get<std::vector<json>>(
+          request_data.candidates ) );
     }
 
-    return json_response( filtered_candidates );
+    return json_response(false);
   }
 
   Response handle_get_completions( const Request& req )

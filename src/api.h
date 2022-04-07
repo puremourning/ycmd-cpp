@@ -7,6 +7,7 @@
 #include <optional>
 #include <vector>
 #include <nlohmann/json.hpp>
+#include <variant>
 
 // These are in latest nlohmann::json but they are really useful, so
 // copypaste...
@@ -98,14 +99,31 @@ namespace ycmd::requests {
   using namespace ycmd::api;
 
   struct FilterAndSortCandidatesRequest {
-    std::vector<Candidate> candidates;
+    enum class CandidateType { CANDIDATES, STRINGS, UNKNOWN } candidate_type;
+    std::variant< std::vector<Candidate>,
+                  std::vector<std::string>,
+                  std::vector<json> > candidates;
     std::optional<std::string> sort_property;
     std::string query;
-
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(
-      FilterAndSortCandidatesRequest,
-      candidates,
-      sort_property,
-      query)
   };
+
+  void from_json(const json& j, FilterAndSortCandidatesRequest& r) {
+    r.sort_property = j.at( "sort_property" ).get<decltype(r.sort_property)>();
+    r.query = j.at( "query" ).get<decltype(r.query)>();
+
+    using enum FilterAndSortCandidatesRequest::CandidateType;
+
+    const auto& candidates = j.at( "candidates" );
+
+    if ( r.sort_property == "word" ) {
+        r.candidates = candidates.get<std::vector<std::string>>();
+        r.candidate_type = STRINGS;
+    } else if ( r.sort_property == "insertion_text" ) {
+        r.candidates = candidates.get<std::vector<Candidate>>();
+        r.candidate_type = CANDIDATES;
+    } else {
+      r.candidates = candidates.get<std::vector<json>>();
+      r.candidate_type = UNKNOWN;
+    }
+  }
 }
