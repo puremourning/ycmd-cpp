@@ -26,6 +26,7 @@ find_package(Boost REQUIRED
     beast
     filesystem
     process
+    regex
 )
 
 find_package(nlohmann_json REQUIRED)

@@ -53,8 +53,8 @@ void IdentifierCompleter::AddSingleIdentifierToDatabase(
 
 void IdentifierCompleter::ClearForFileAndAddIdentifiersToDatabase(
   std::vector< std::string >& new_candidates,
-  std::string& filetype,
-  std::string& filepath ) {
+  std::string filetype,
+  std::string filepath ) {
   identifier_database_.RecreateIdentifiers( std::move( new_candidates ),
                                             std::move( filetype ),
                                             std::move( filepath ) );

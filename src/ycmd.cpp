@@ -31,6 +31,7 @@
 #include <boost/system/detail/errc.hpp>
 #include <boost/system/detail/error_code.hpp>
 #include <boost/system/system_error.hpp>
+#include <exception>
 #include <iostream>
 #include <system_error>
 
@@ -100,6 +101,15 @@ namespace ycmd::server
         } catch ( const ShutdownResult& s ) {
           response = std::move( s.response );
           do_shutdown = true;
+        } catch ( std::exception e ) {
+          // unexpected exception!
+          response.result(http::status::internal_server_error);
+          response.body() = e.what();
+          response.prepare_payload();
+        } catch ( boost::system::system_error ec ) {
+          response.result(http::status::internal_server_error);
+          response.body() = ec.what();
+          response.prepare_payload();
         }
       }
 

@@ -52,8 +52,8 @@ public:
   // new identifiers.
   void ClearForFileAndAddIdentifiersToDatabase(
     std::vector< std::string >& new_candidates,
-    std::string& filetype,
-    std::string& filepath );
+    std::string filetype,
+    std::string filepath );
 
   YCM_EXPORT void AddIdentifiersToDatabaseFromTagFiles(
     std::vector< std::string >& absolute_paths_to_tag_files );

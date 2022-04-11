@@ -34,6 +34,7 @@ target_link_libraries( ycmd
     YcmCore
     Boost::boost
     Boost::log
+    Boost::regex
     nlohmann_json::nlohmann_json
 )
 

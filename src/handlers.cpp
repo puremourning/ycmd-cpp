@@ -1,4 +1,5 @@
 #include "core/Candidate.h"
+#include "core/IdentifierCompleter.h"
 #include "core/Repository.h"
 
 #include "core/Result.h"
@@ -11,9 +12,16 @@
 #include <boost/beast/http/string_body.hpp>
 #include <boost/functional/hash.hpp>
 #include <boost/core/ignore_unused.hpp>
+#include <boost/log/trivial.hpp>
+#include <boost/regex.hpp>
 
 #include <boost/beast/http/verb.hpp>
+#include <boost/regex/v5/match_flags.hpp>
+#include <boost/regex/v5/regex_fwd.hpp>
+#include <boost/regex/v5/regex_iterator.hpp>
+#include <boost/regex/v5/regex_search.hpp>
 #include <functional>
+#include <iterator>
 #include <nlohmann/json_fwd.hpp>
 #include <string>
 #include <string_view>
@@ -30,15 +38,17 @@ namespace ycmd::handlers {
   Result handle_healthy( const Request& req );
   Result handle_ready( const Request& req );
   Result handle_shutdown( const Request& req );
-  Result handle_get_completions( const Request& req );
+  Result handle_completions( const Request& req );
+  Result handle_event_notification( const Request& req );
   Result handle_filter_and_sort_candidates( const Request& req );
 
   std::unordered_map<Target,Handler,boost::hash<Target>> HANDLERS = {
-    { { http::verb::get,  "/healthy" },          handle_healthy },
-    { { http::verb::get,  "/ready" },            handle_ready },
-    { { http::verb::post, "/shutdown" },         handle_shutdown },
+    { { http::verb::get,  "/healthy" },         handle_healthy },
+    { { http::verb::get,  "/ready" },           handle_ready },
+    { { http::verb::post, "/shutdown" },        handle_shutdown },
 
-    { { http::verb::post, "/get_completions" },  handle_get_completions },
+    { { http::verb::post, "/event_notification" }, handle_event_notification },
+    { { http::verb::post, "/completions" },     handle_completions },
     { { http::verb::post, "/filter_and_sort_candidates" },
       handle_filter_and_sort_candidates },
   };
@@ -167,25 +177,53 @@ namespace ycmd::handlers {
     co_return json_response(false);
   }
 
-  Result handle_get_completions( const Request& req )
+  // TODO: Move
+  YouCompleteMe::IdentifierCompleter c;
+
+  boost::regex DEFUALT_IDENTIFIER_REGEX{ R"([^\W\d]\w*)" };
+
+  std::unordered_map<std::string, boost::regex> FILETYPE_TO_IDENTIFIER_REGEX {
+  };
+
+  Result handle_event_notification( const Request& req ) 
   {
-    Response rep;
-    auto req_body = json::parse(req.body());
-    auto rep_body = json::object();
+    auto [ request_data, j ] = json_request<requests::EventNotification>( req );
+    LOG(debug) << "Event name: " << j.at( "event_name" );
 
-    if ( req_body.contains( "test" ) )
+    const auto& file = request_data.file_data[ request_data.file_path ];
+
+    using enum requests::EventNotification::Event;
+    switch ( request_data.event_name )
     {
-      rep_body[ "foo" ] = "bar";
-      rep.result(http::status::ok);
-      rep.body() = rep_body.dump();
-      rep.prepare_payload();
-    }
-    else
-    {
-      rep.result(http::status::bad_request);
-      rep.reason("Missing 'test'");
+      case FileReadyToParse:
+      {
+        boost::smatch results;
+        boost::sregex_iterator b( file.contents.begin(),
+                                  file.contents.end(),
+                                  DEFUALT_IDENTIFIER_REGEX );
+        boost::sregex_iterator e;
+
+        // FIXME: sigh... more sad copying
+        std::vector<std::string> candidates;
+        std::for_each( b, e, [&]( const auto& match ) {
+          candidates.push_back( match.str() );
+        } );
+
+        // TODO: extract the identifiers using regex
+        c.ClearForFileAndAddIdentifiersToDatabase(
+          candidates,
+          file.filetypes[ 0 ],
+          request_data.file_path.string() );
+        break;
+      }
     }
 
-    co_return rep;
+    co_return json_response(nullptr);
+  }
+
+  Result handle_completions( const Request& req )
+  {
+    auto [ request_data, _ ] = json_request<api::SimpleRequest>( req );
+    co_return Response();
   }
 }

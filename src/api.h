@@ -19,6 +19,9 @@
      inline void to_json(nlohmann::json& nlohmann_json_j, const Type& nlohmann_json_t) { NLOHMANN_JSON_EXPAND(NLOHMANN_JSON_PASTE(NLOHMANN_JSON_TO, __VA_ARGS__)) } \
      inline void from_json(const nlohmann::json& nlohmann_json_j, Type& nlohmann_json_t) { Type nlohmann_json_default_obj; NLOHMANN_JSON_EXPAND(NLOHMANN_JSON_PASTE(NLOHMANN_JSON_FROM_WITH_DEFAULT, __VA_ARGS__)) }
 
+#define NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT_AND_BASE(Type, Base, ...)  \
+     friend void to_json(nlohmann::json& nlohmann_json_j, const Type& nlohmann_json_t) { nlohmann::to_json(nlohmann_json_j, static_cast<const Base&>(nlohmann_json_t)); NLOHMANN_JSON_EXPAND(NLOHMANN_JSON_PASTE(NLOHMANN_JSON_TO, __VA_ARGS__)) } \
+     friend void from_json(const nlohmann::json& nlohmann_json_j, Type& nlohmann_json_t) { nlohmann::from_json(nlohmann_json_j, static_cast<Base&>(nlohmann_json_t)); Type nlohmann_json_default_obj; NLOHMANN_JSON_EXPAND(NLOHMANN_JSON_PASTE(NLOHMANN_JSON_FROM_WITH_DEFAULT, __VA_ARGS__)) }
 
 namespace ycmd::api {
   using LineNum = int;
@@ -93,6 +96,39 @@ namespace ycmd::api {
       fixits);
   };
 
+  struct SimpleRequest {
+    LineNum line_num;
+    ColumnNum column_num;
+    FilePath file_path;
+
+    struct FileData {
+      std::vector<std::string> filetypes;
+      std::string contents;
+
+      NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(
+        FileData,
+        filetypes,
+        contents );
+    };
+
+    using FileDataMap = std::map<FilePath, FileData>;
+    FileDataMap file_data;
+
+    std::string completer_target;
+    std::string working_directory;
+    json::object_t extra_conf_data;
+
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(
+      SimpleRequest,
+      line_num,
+      column_num,
+      file_path,
+      file_data,
+      completer_target,
+      working_directory,
+      extra_conf_data);
+  };
+
 }
 
 namespace ycmd::requests {
@@ -126,4 +162,27 @@ namespace ycmd::requests {
       r.candidate_type = UNKNOWN;
     }
   }
+
+  struct EventNotification : SimpleRequest
+  {
+    enum class Event
+    {
+      FileReadyToParse
+    };
+    Event event_name;
+
+    // tag_files
+    // syntax_keywords
+
+
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT_AND_BASE(
+      EventNotification,
+      SimpleRequest,
+      event_name);
+  };
+
+  NLOHMANN_JSON_SERIALIZE_ENUM( EventNotification::Event, {
+    {EventNotification::Event::FileReadyToParse, "FileReadyToParse"},
+  });
+
 }
