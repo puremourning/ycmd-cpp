@@ -28,6 +28,7 @@
 #include <boost/beast/http/write.hpp>
 #include <boost/log/trivial.hpp>
 
+#include <boost/system/detail/errc.hpp>
 #include <boost/system/detail/error_code.hpp>
 #include <boost/system/system_error.hpp>
 #include <iostream>
@@ -59,7 +60,8 @@ namespace ycmd::server
     // otherwise, ignore the result Ts...
   }
 
-  asio::awaitable<void> handle_session( tcp::socket socket )
+  asio::awaitable<void> handle_session( tcp::acceptor& acceptor,
+                                        tcp::socket socket )
   {
     auto stream = beast::tcp_stream( std::move( socket ) );
     beast::flat_buffer buffer;
@@ -76,6 +78,7 @@ namespace ycmd::server
         { req.method(), { req.target().data(), req.target().length() } } );
 
       Response response;
+      bool do_shutdown = false;
       if ( handler == handlers::HANDLERS.end() )
       {
         LOG(info) << "No handler for "
@@ -92,12 +95,21 @@ namespace ycmd::server
                   << " "
                   << req.target();
 
-        response = handler->second( req );
+        try {
+          response = co_await handler->second( req );
+        } catch ( const ShutdownResult& s ) {
+          response = std::move( s.response );
+          do_shutdown = true;
+        }
       }
 
       co_await http::async_write( stream,
                                   response,
                                   asio::use_awaitable );
+
+      if ( do_shutdown ) {
+        acceptor.cancel();
+      }
     }
     catch( const boost::system::system_error &e )
     {
@@ -107,12 +119,21 @@ namespace ycmd::server
 
   asio::awaitable<void> listen( tcp::acceptor& acceptor )
   {
-    for( ;; )
+    for (;;)
     {
-      asio::co_spawn( acceptor.get_executor(),
-                      handle_session(
-                        co_await acceptor.async_accept( asio::use_awaitable ) ),
-                      handle_unexpected_exception<> );
+      try {
+        asio::co_spawn(
+          acceptor.get_executor(),
+          handle_session(
+            acceptor,
+            co_await acceptor.async_accept( asio::use_awaitable ) ),
+          handle_unexpected_exception<> );
+      } catch ( boost::system::system_error& ec ) {
+        if ( ec.code() == boost::system::errc::operation_canceled ) {
+          LOG(info) << "Closing socket on request";
+          break;
+        }
+      }
     }
   }
 }

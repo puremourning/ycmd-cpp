@@ -1,7 +1,9 @@
 #pragma once
 
+#include <boost/asio/awaitable.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
+#include <exception>
 #include <nlohmann/json.hpp>
 
 namespace asio = boost::asio;
@@ -42,6 +44,18 @@ namespace ycmd
 {
   using Request = http::request<http::string_body>;
   using Response = http::response<http::string_body>;
+  using Result = asio::awaitable<Response>;
   using Target = std::pair<http::verb,std::string_view>;
-  using Handler = std::function<Response( const Request& )>;
+  using Handler = std::function<Result( const Request& )>;
+
+  struct ShutdownResult : std::exception {
+    ShutdownResult( Response response_ )
+      : response( std::move(response_) )
+    {
+    }
+
+    Response response;
+  };
+
+  struct Shutdown: std::exception {};
 }

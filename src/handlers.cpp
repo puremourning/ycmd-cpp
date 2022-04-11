@@ -4,6 +4,7 @@
 #include "core/Result.h"
 #include "ycmd.h"
 #include "api.h"
+#include <boost/asio/awaitable.hpp>
 #include <boost/beast/http.hpp>
 #include <boost/beast/http/message.hpp>
 #include <boost/beast/http/status.hpp>
@@ -26,14 +27,16 @@
 namespace ycmd::handlers {
   namespace http = boost::beast::http;
 
-  Response handle_healthy( const Request& req );
-  Response handle_ready( const Request& req );
-  Response handle_get_completions( const Request& req );
-  Response handle_filter_and_sort_candidates( const Request& req );
+  Result handle_healthy( const Request& req );
+  Result handle_ready( const Request& req );
+  Result handle_shutdown( const Request& req );
+  Result handle_get_completions( const Request& req );
+  Result handle_filter_and_sort_candidates( const Request& req );
 
   std::unordered_map<Target,Handler,boost::hash<Target>> HANDLERS = {
     { { http::verb::get,  "/healthy" },          handle_healthy },
     { { http::verb::get,  "/ready" },            handle_ready },
+    { { http::verb::post, "/shutdown" },         handle_shutdown },
 
     { { http::verb::post, "/get_completions" },  handle_get_completions },
     { { http::verb::post, "/filter_and_sort_candidates" },
@@ -64,19 +67,25 @@ namespace ycmd::handlers {
     return { j.get<TRequest>(), j };
   }
 
-  Response handle_healthy( const Request& req )
+  Result handle_healthy( const Request& req )
   {
     boost::ignore_unused( req );
-    return json_response( true );
+    co_return json_response( true );
   }
 
-  Response handle_ready( const Request& req )
+  Result handle_ready( const Request& req )
   {
     boost::ignore_unused( req );
-    return json_response( true );
+    co_return json_response( true );
   }
 
-  Response handle_filter_and_sort_candidates( const Request& req )
+  Result handle_shutdown( const Request& req )
+  {
+    boost::ignore_unused( req );
+    throw ShutdownResult( json_response( true ) );
+  }
+
+  Result handle_filter_and_sort_candidates( const Request& req )
   {
     // FIXME: Unfortuantely, this is really inefficent. It does _tons_ of
     // copies. It might actually be better to use the json _directly_ rather
@@ -118,7 +127,8 @@ namespace ycmd::handlers {
           continue;
         }
 
-        Result result = candidate->QueryMatchResult( query_object );
+        YouCompleteMe::Result result = candidate->QueryMatchResult(
+          query_object );
 
         if ( result.IsSubsequence() ) {
           result_and_objects.emplace_back( result, i );
@@ -144,20 +154,20 @@ namespace ycmd::handlers {
     switch( request_data.candidate_type )
     {
     case requests::FilterAndSortCandidatesRequest::CandidateType::CANDIDATES:
-      return GetResults( std::get<std::vector<api::Candidate>>(
+      co_return GetResults( std::get<std::vector<api::Candidate>>(
           request_data.candidates ) );
     case requests::FilterAndSortCandidatesRequest::CandidateType::STRINGS:
-      return GetResults( std::get<std::vector<std::string>>(
+      co_return GetResults( std::get<std::vector<std::string>>(
           request_data.candidates ) );
     case requests::FilterAndSortCandidatesRequest::CandidateType::UNKNOWN:
-      return GetResults( std::get<std::vector<json>>(
+      co_return GetResults( std::get<std::vector<json>>(
           request_data.candidates ) );
     }
 
-    return json_response(false);
+    co_return json_response(false);
   }
 
-  Response handle_get_completions( const Request& req )
+  Result handle_get_completions( const Request& req )
   {
     Response rep;
     auto req_body = json::parse(req.body());
@@ -176,6 +186,6 @@ namespace ycmd::handlers {
       rep.reason("Missing 'test'");
     }
 
-    return rep;
+    co_return rep;
   }
 }
