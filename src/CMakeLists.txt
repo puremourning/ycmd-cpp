@@ -1,7 +1,7 @@
 add_subdirectory( core )
 add_executable( ycmd )
 
-set( SOURCES handlers.cpp api.h )
+set( SOURCES ycmd.h api.h handlers.cpp request_wrap.cpp )
 
 target_sources( ycmd
   PRIVATE
@@ -25,7 +25,11 @@ if ( MSVC )
 else()
   target_compile_options( ycmd
     PRIVATE
-      -Wall -Wextra -Werror -fvisibility=hidden
+      -Wall -Wextra -Werror -fvisibility=hidden -fsanitize=address
+  )
+  target_link_options( ycmd
+    PRIVATE
+      -fsanitize=address
   )
 endif()
 

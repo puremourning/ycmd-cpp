@@ -1,5 +1,7 @@
 #include "ycmd.h"
+#include "identifier_utils.h"
 #include "handlers.cpp"
+#include "request_wrap.cpp"
 
 #include <boost/asio/awaitable.hpp>
 #include <boost/asio/ip/address_v4.hpp>
@@ -101,7 +103,7 @@ namespace ycmd::server
         } catch ( const ShutdownResult& s ) {
           response = std::move( s.response );
           do_shutdown = true;
-        } catch ( std::exception e ) {
+        } catch ( const std::exception& e ) {
           // unexpected exception!
           response.result(http::status::internal_server_error);
           response.body() = e.what();

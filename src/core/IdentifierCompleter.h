@@ -40,8 +40,8 @@ public:
     std::vector< std::string > candidates );
   YCM_EXPORT IdentifierCompleter(
                        std::vector< std::string >&& candidates,
-                       std::string&& filetype,
-                       std::string&& filepath );
+                       std::string filetype,
+                       std::string filepath );
 
   void AddSingleIdentifierToDatabase(
     std::string& new_candidate,
@@ -60,11 +60,11 @@ public:
 
   // Only provided for tests!
   YCM_EXPORT std::vector< std::string > CandidatesForQuery(
-    std::string&& query,
+    const std::string& query,
     const size_t max_candidates = 0 ) const;
 
   YCM_EXPORT std::vector< std::string > CandidatesForQueryAndType(
-    std::string& query,
+    const std::string& query,
     const std::string &filetype,
     const size_t max_candidates = 0 ) const;
 

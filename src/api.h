@@ -77,14 +77,15 @@ namespace ycmd::api {
 
   struct Candidate {
     std::string insertion_text;
-    std::string menu_text;
-    std::string extra_menu_info;
-    std::string detailed_info;
-    std::string kind;
-    std::string extra_data;
+    std::optional<std::string> menu_text;
+    std::optional<std::string> extra_menu_info;
+    std::optional<std::string> detailed_info;
+    std::optional<std::string> kind;
+    std::optional<std::string> extra_data;
     std::optional<std::string> doc_string;
     std::optional<std::vector<FixIt>> fixits;
 
+    // TODO: this puts nulls for optionals :(
     NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(
       Candidate,
       insertion_text,
@@ -128,6 +129,30 @@ namespace ycmd::api {
       working_directory,
       extra_conf_data);
   };
+
+  /**
+   * Return a HTTP OK with the supplied JSON payload
+   */
+  Response json_response( const json& j )
+  {
+    Response rep;
+    rep.result(http::status::ok);
+    rep.body() = j.dump();
+    rep.prepare_payload();
+    return rep;
+  }
+
+  /**
+   * Parse a HTTP request into a struct.
+   *
+   * @param TRequest type to parse into
+   */
+  template<typename TRequest>
+  std::pair<TRequest, json> json_request( const Request& req )
+  {
+    auto j = json::parse( req.body() );
+    return { j.get<TRequest>(), j };
+  }
 
 }
 
@@ -185,4 +210,20 @@ namespace ycmd::requests {
     {EventNotification::Event::FileReadyToParse, "FileReadyToParse"},
   });
 
+}
+
+namespace ycmd::responses {
+  using namespace api;
+
+  struct Error {
+    std::string exception;
+    std::string message;
+    std::string traceback;
+  };
+
+  struct CompletionsResponse {
+    std::vector<Candidate> completions;
+    ColumnNum start_column;
+    std::vector<Error> errors;
+  };
 }

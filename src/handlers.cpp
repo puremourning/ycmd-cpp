@@ -1,10 +1,11 @@
 #include "core/Candidate.h"
 #include "core/IdentifierCompleter.h"
 #include "core/Repository.h"
-
 #include "core/Result.h"
 #include "ycmd.h"
+#include "identifier_utils.h"
 #include "api.h"
+#include "request_wrap.cpp"
 #include <boost/asio/awaitable.hpp>
 #include <boost/beast/http.hpp>
 #include <boost/beast/http/message.hpp>
@@ -53,46 +54,22 @@ namespace ycmd::handlers {
       handle_filter_and_sort_candidates },
   };
 
-  /**
-   * Return a HTTP OK with the supplied JSON payload
-   */
-  Response json_response( const json& j )
-  {
-    Response rep;
-    rep.result(http::status::ok);
-    rep.body() = j.dump();
-    rep.prepare_payload();
-    return rep;
-  }
-
-  /**
-   * Parse a HTTP request into a struct.
-   *
-   * @param TRequest type to parse into
-   */
-  template<typename TRequest>
-  std::pair<TRequest, json> json_request( const Request& req )
-  {
-    auto j = json::parse( req.body() );
-    return { j.get<TRequest>(), j };
-  }
-
   Result handle_healthy( const Request& req )
   {
     boost::ignore_unused( req );
-    co_return json_response( true );
+    co_return api::json_response( true );
   }
 
   Result handle_ready( const Request& req )
   {
     boost::ignore_unused( req );
-    co_return json_response( true );
+    co_return api::json_response( true );
   }
 
   Result handle_shutdown( const Request& req )
   {
     boost::ignore_unused( req );
-    throw ShutdownResult( json_response( true ) );
+    throw ShutdownResult( api::json_response( true ) );
   }
 
   Result handle_filter_and_sort_candidates( const Request& req )
@@ -102,7 +79,7 @@ namespace ycmd::handlers {
     // than try and parse it into a struct with a variant. Or alternatively,
     // just store a json ref in the request struct.
     auto [ request_data, _ ] =
-      json_request<requests::FilterAndSortCandidatesRequest>( req );
+      api::json_request<requests::FilterAndSortCandidatesRequest>( req );
 
     auto GetResults = [&, &request_data=request_data](
       const auto& candidates ) {
@@ -158,7 +135,7 @@ namespace ycmd::handlers {
           candidates[ r.extra_object_ ] );
       }
 
-      return json_response( filtered_candidates );
+      return api::json_response( filtered_candidates );
     };
 
     switch( request_data.candidate_type )
@@ -174,20 +151,16 @@ namespace ycmd::handlers {
           request_data.candidates ) );
     }
 
-    co_return json_response(false);
+    co_return api::json_response(false);
   }
 
   // TODO: Move
   YouCompleteMe::IdentifierCompleter c;
 
-  boost::regex DEFUALT_IDENTIFIER_REGEX{ R"([^\W\d]\w*)" };
-
-  std::unordered_map<std::string, boost::regex> FILETYPE_TO_IDENTIFIER_REGEX {
-  };
-
-  Result handle_event_notification( const Request& req ) 
+  Result handle_event_notification( const Request& req )
   {
-    auto [ request_data, j ] = json_request<requests::EventNotification>( req );
+    auto [ request_data, j ] = api::json_request<requests::EventNotification>(
+      req );
     LOG(debug) << "Event name: " << j.at( "event_name" );
 
     const auto& file = request_data.file_data[ request_data.file_path ];
@@ -197,18 +170,7 @@ namespace ycmd::handlers {
     {
       case FileReadyToParse:
       {
-        boost::smatch results;
-        boost::sregex_iterator b( file.contents.begin(),
-                                  file.contents.end(),
-                                  DEFUALT_IDENTIFIER_REGEX );
-        boost::sregex_iterator e;
-
-        // FIXME: sigh... more sad copying
-        std::vector<std::string> candidates;
-        std::for_each( b, e, [&]( const auto& match ) {
-          candidates.push_back( match.str() );
-        } );
-
+        auto candidates = IdentifiersFromBuffer( file );
         // TODO: extract the identifiers using regex
         c.ClearForFileAndAddIdentifiersToDatabase(
           candidates,
@@ -218,12 +180,30 @@ namespace ycmd::handlers {
       }
     }
 
-    co_return json_response(nullptr);
+    co_return api::json_response(nullptr);
   }
 
   Result handle_completions( const Request& req )
   {
-    auto [ request_data, _ ] = json_request<api::SimpleRequest>( req );
-    co_return Response();
+    auto request_wrap = ycmd::make_request_wrap( req );
+    auto completions = c.CandidatesForQueryAndType(
+          request_wrap.query(),
+          request_wrap.first_filetype() );
+    // completions = _RemoveSmallCandidates(
+    //   completions, self.user_options[ 'min_num_identifier_candidate_chars' ] )
+
+    std::vector<api::Candidate> candidates;
+    for ( auto& completion_sring : completions ) {
+      candidates.push_back( api::Candidate{
+        .insertion_text = completion_sring,
+        .extra_menu_info = "[ID]",
+      } );
+    }
+    responses::CompletionsResponse response {
+      .completions = candidates,
+      .start_column = (int)request_wrap.start_codepoint()  // TODO: switch to byte offset
+                                                      // TODO: calculate, update
+    };
+    co_return api::json_response( candidates );
   }
 }

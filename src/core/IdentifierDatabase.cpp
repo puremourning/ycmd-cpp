@@ -111,7 +111,7 @@ void IdentifierDatabase::RecreateIdentifiers(
 
 
 std::vector< Result > IdentifierDatabase::ResultsForQueryAndType(
-  std::string&& query,
+  std::string query,
   const std::string &filetype,
   const size_t max_results ) const {
   FiletypeCandidateMap::const_iterator it;

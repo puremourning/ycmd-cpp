@@ -33,8 +33,8 @@ IdentifierCompleter::IdentifierCompleter(
 
 IdentifierCompleter::IdentifierCompleter(
   std::vector< std::string >&& candidates,
-  std::string&& filetype,
-  std::string&& filepath ) {
+  std::string filetype,
+  std::string filepath ) {
   identifier_database_.RecreateIdentifiers( std::move( candidates ),
                                             std::move( filetype ),
                                             std::move( filepath ) );
@@ -71,19 +71,19 @@ void IdentifierCompleter::AddIdentifiersToDatabaseFromTagFiles(
 
 
 std::vector< std::string > IdentifierCompleter::CandidatesForQuery(
-  std::string&& query,
+  const std::string& query,
   const size_t max_candidates ) const {
   return CandidatesForQueryAndType( query, "", max_candidates );
 }
 
 
 std::vector< std::string > IdentifierCompleter::CandidatesForQueryAndType(
-  std::string& query,
+  const std::string &query,
   const std::string &filetype,
   const size_t max_candidates ) const {
 
   std::vector< Result > results =
-    identifier_database_.ResultsForQueryAndType( std::move( query ),
+    identifier_database_.ResultsForQueryAndType( query,
                                                  filetype,
                                                  max_candidates );
 
