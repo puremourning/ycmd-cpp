@@ -16,7 +16,7 @@
 #include <unordered_map>
 
 namespace ycmd {
-  boost::regex DEFUALT_IDENTIFIER_REGEX{ R"([^\W\d]\w*)" };
+  const boost::regex DEFAULT_IDENTIFIER_REGEX{ R"([^\W\d]\w*)" };
 
   namespace detail {
     // this ugly boilerplate is required to make heterogenous lookup work for
@@ -36,7 +36,7 @@ namespace ycmd {
     };
   }
 
-  std::unordered_map< std::string,
+  const std::unordered_map< std::string,
                       boost::regex,
                       detail::string_hash,
                       std::equal_to<> > FILETYPE_TO_IDENTIFIER_REGEX {
@@ -48,7 +48,7 @@ namespace ycmd {
       return pos->second;
     }
 
-    return DEFUALT_IDENTIFIER_REGEX;
+    return DEFAULT_IDENTIFIER_REGEX;
   }
 
   std::vector<std::string> IdentifiersFromBuffer(
