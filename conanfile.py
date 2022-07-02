@@ -27,17 +27,20 @@ class YcmdConan(ConanFile):
     )
 
     def layout(self):
-        cmake_layout(self)
+      cmake_layout(self)
 
     def generate(self):
-        CMakeToolchain(self).generate()
-        CMakeDeps(self).generate()
+      CMakeToolchain(self).generate()
+      CMakeDeps(self).generate()
 
     def build(self):
-        cmake = CMake(self)
-        cmake.configure()
-        cmake.build()
+      cmake = CMake(self)
+      cmake.configure()
+      cmake.build()
 
     def package(self):
-        cmake = CMake(self)
-        cmake.install()
+      cmake = CMake(self)
+      cmake.install()
+
+    def deploy(self):
+      self.copy( "*" )

@@ -42,3 +42,4 @@ target_link_libraries( ycmd
     nlohmann_json::nlohmann_json
 )
 
+install( TARGETS ycmd DESTINATION bin )

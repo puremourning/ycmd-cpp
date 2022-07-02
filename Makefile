@@ -1,7 +1,7 @@
 DEPS=.build-deps
 BUILD=cmake-build-debug
 
-.PHONY: all clean
+.PHONY: all clean distclean
 
 all: ${BUILD}
 	${DEPS}/bin/cmake --build ${BUILD} --parallel
