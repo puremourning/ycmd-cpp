@@ -51,7 +51,7 @@ public:
   // Same as above, but clears all identifiers stored for the file before adding
   // new identifiers.
   void ClearForFileAndAddIdentifiersToDatabase(
-    std::vector< std::string >& new_candidates,
+    std::vector< std::string >&& new_candidates,
     std::string filetype,
     std::string filepath );
 

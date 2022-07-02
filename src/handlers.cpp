@@ -170,10 +170,8 @@ namespace ycmd::handlers {
     {
       case FileReadyToParse:
       {
-        auto candidates = IdentifiersFromBuffer( file );
-        // TODO: extract the identifiers using regex
         c.ClearForFileAndAddIdentifiersToDatabase(
-          candidates,
+          IdentifiersFromBuffer( file ),
           file.filetypes[ 0 ],
           request_data.file_path.string() );
         break;
@@ -200,7 +198,7 @@ namespace ycmd::handlers {
       } );
     }
     responses::CompletionsResponse response {
-      .completions = candidates,
+      .completions = std::move( candidates ),
       .start_column = (int)request_wrap.start_codepoint()  // TODO: switch to byte offset
                                                       // TODO: calculate, update
     };
