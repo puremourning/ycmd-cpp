@@ -2,6 +2,7 @@
 
 CompileFlags:
   Add: [ '-Wno-deprecated-experimental-coroutine' ]
+  Remove: [ '-fsanitize=address' ]
 Diagnostics:
   UnusedIncludes: None
 Hover:

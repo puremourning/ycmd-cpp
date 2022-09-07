@@ -85,6 +85,16 @@ else()
     PRIVATE
       -Wall -Wextra -Werror -fvisibility=hidden
   )
+  if ( ${ENABLE_ASAN} )
+    target_compile_options( YcmCore
+      PRIVATE
+       -fsanitize=address
+      )
+    target_link_options( YcmCore
+      PRIVATE
+        -fsanitize=address
+    )
+  endif()
 endif()
 
 target_link_libraries( YcmCore
