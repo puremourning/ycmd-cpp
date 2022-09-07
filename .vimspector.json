@@ -17,6 +17,13 @@
         "request": "launch",
         "program": "${build_dir}/src/ycmd"
       }
+    },
+    "Attach": {
+      "adapter": "CodeLLDB",
+      "configuration": {
+        "request": "attach",
+        "program": "${workspaceRoot}/build/Debug/src/ycmd"
+      }
     }
   }
 }

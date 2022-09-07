@@ -33,13 +33,14 @@
 
 #include <boost/log/trivial.hpp>
 
-#include <boost/program_options.hpp>
+#include <boost/stacktrace.hpp>
 
 #include <boost/program_options/errors.hpp>
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/parsers.hpp>
 #include <boost/program_options/value_semantic.hpp>
 #include <boost/program_options/variables_map.hpp>
+#include <boost/stacktrace/stacktrace_fwd.hpp>
 #include <boost/system/detail/errc.hpp>
 #include <boost/system/detail/error_code.hpp>
 #include <boost/system/system_error.hpp>
@@ -50,11 +51,15 @@
 #include <iterator>
 #include <optional>
 #include <ostream>
+#include <sys/signal.h>
 #include <system_error>
+#include <sys/ptrace.h>
 
 #include <absl/flags/usage.h>
 #include <absl/flags/flag.h>
 #include <absl/flags/parse.h>
+#include <absl/strings/str_split.h>
+#include <unistd.h>
 
 namespace ycmd::server
 {
@@ -175,8 +180,31 @@ ABSL_FLAG( uint16_t, port, 1337, "Port to listen on" );
 ABSL_FLAG( std::optional<std::string>, out, std::nullopt, "Output log file" );
 ABSL_FLAG( std::optional<std::string>, err, std::nullopt, "Error log file" );
 
+void crash_handler(int signum)
+{
+  signal(signum, SIG_DFL);
+  // FIXME: This is not async signal safe!
+  auto signame = strsignal( signum );
+  std::cerr << "Received deadly signal ";
+  if ( signame )
+  {
+    std::cerr << signame;
+  }
+  else
+  {
+    std::cerr << signum;
+  }
+  std::cerr << "\nTraceback:\n"
+            << boost::stacktrace::stacktrace();
+  raise(signum);
+}
+
 int main( int argc, char **argv )
 {
+  signal( SIGABRT, &crash_handler );
+  signal( SIGSEGV, &crash_handler );
+  signal( SIGBUS, &crash_handler );
+
   absl::SetProgramUsageMessage("A code comprehension server");
   absl::ParseCommandLine(argc, argv);
 
@@ -192,6 +220,13 @@ int main( int argc, char **argv )
                   "w",
                   stderr );
   }
+
+  std::cout << "Waitign for debugger..." << std::endl;
+  while ( !ptrace( PT_TRACE_ME, 0, 0, 0 ) )
+  {
+    sleep( 100 );
+  }
+
 
   std::cout << "YCMD Startup..." << std::endl;
 

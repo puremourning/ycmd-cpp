@@ -51,6 +51,7 @@ target_link_libraries( ycmd
     Boost::boost
     Boost::log
     Boost::regex
+    Boost::stacktrace
     absl::flags
     absl::flags_parse
     nlohmann_json::nlohmann_json
