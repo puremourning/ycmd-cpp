@@ -23,7 +23,7 @@ class YcmdConan(ConanFile):
   requires = (
     "boost/1.78.0",
     "nlohmann_json/3.10.5",
-    "abseil/20211102.0",
+    "abseil/20220623.0",
   )
 
   def imports(self):
