@@ -36,7 +36,6 @@
 namespace ycmd::handlers {
   namespace http = boost::beast::http;
 
-#define QUOTE( x ) # x
 #define HANDLER_LIST \
   HANDLER( get,  healthy ) \
   HANDLER( get,  ready ) \
@@ -61,7 +60,7 @@ namespace ycmd::handlers {
   std::unordered_map<Target,Handler,boost::hash<Target>> HANDLERS = {
 #define HANDLER( handler_verb, handler_name ) \
     { { http::verb::handler_verb, \
-        "/" QUOTE( handler_name ) }, \
+        "/" # handler_name }, \
         handle_ ## handler_name },
     HANDLER_LIST
 #undef HANDLER
@@ -197,23 +196,30 @@ namespace ycmd::handlers {
   Result handle_completions( const Request& req )
   {
     auto request_wrap = ycmd::make_request_wrap( req );
+    // TODO settings[ min_num_of_chars_for_completion ]
+    if ( request_wrap.query().length() < 2 )
+    {
+      co_return api::json_response( json::array() );
+    }
+
     auto completions = identifier_completer.CandidatesForQueryAndType(
           request_wrap.query(),
           request_wrap.first_filetype() );
-    // completions = _RemoveSmallCandidates(
-    //   completions, self.user_options[ 'min_num_identifier_candidate_chars' ] )
 
     std::vector<api::Candidate> candidates;
     for ( auto& completion_sring : completions ) {
-      candidates.push_back( api::Candidate{
-        .insertion_text = completion_sring,
-        .extra_menu_info = "[ID]",
-      } );
+      // TODO settings[ min_num_identifier_candidate_chars ]
+      if ( completion_sring.length() > 0 )
+      {
+        candidates.push_back( api::Candidate{
+          .insertion_text = completion_sring,
+          .extra_menu_info = "[ID]",
+        } );
+      }
     }
     responses::CompletionsResponse response {
       .completions = std::move( candidates ),
         // TODO: switch to byte offset
-        // TODO: calculate the actual completion start column!
       .completion_start_column = (int)request_wrap.start_codepoint()
     };
     co_return api::json_response( response );
