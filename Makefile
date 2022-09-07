@@ -19,7 +19,7 @@ all: ${TARGET}
 	${DEPS}/bin/compdb -p build/${TARGET} list > compile_commands.json
 
 ${TARGET}: ${DEPS} conanfile.py
-	${DEPS}/bin/conan install --profile=${PROFILE} -s build_type=Debug . --build missing
+	${DEPS}/bin/conan install --profile=${PROFILE} -s compiler.cppstd=20 -s build_type=Debug . --build missing
 	${DEPS}/bin/conan build .
 
 ${DEPS}: dev_requirements.txt

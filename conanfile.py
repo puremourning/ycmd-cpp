@@ -1,5 +1,6 @@
 from conan import ConanFile
 from conan.tools.cmake import CMakeToolchain, CMakeDeps, CMake, cmake_layout
+from conans import tools
 
 
 class YcmdConan(ConanFile):
@@ -21,13 +22,13 @@ class YcmdConan(ConanFile):
 
   # Requirements
   requires = (
-    "boost/1.78.0",
-    "nlohmann_json/3.10.5",
+    "boost/1.79.0",
+    "nlohmann_json/3.11.2",
     "abseil/20220623.0",
   )
 
-  def imports(self):
-    self.copy('*', src='bin', dst='bin')
+  def validate(self):
+    tools.check_min_cppstd(self, "20")
 
   def layout(self):
     cmake_layout(self)
