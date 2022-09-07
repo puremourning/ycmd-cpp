@@ -17,6 +17,11 @@ set_source_files_properties(
     HEADER_FILE_ONLY ON
 )
 
+target_include_directories( ycmd
+  PRIVATE
+    ${CMAKE_SOURCE_DIR}/vendor/boost-url/include
+)
+
 if ( MSVC )
   target_compile_options( ycmd
     PRIVATE

@@ -66,4 +66,6 @@ namespace ycmd
   }
 
   struct Shutdown: std::exception {};
+
+  using namespace std::literals;
 }
