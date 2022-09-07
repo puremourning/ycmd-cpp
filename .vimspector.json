@@ -5,11 +5,11 @@
       "adapter": "CodeLLDB",
       "variables": [
         {
-          "build_dir": "${workspaceRoot}/${Configuration:cmake-build-debug}"
+          "build_dir": "${workspaceRoot}/build/${Configuration:Debug}"
         },
         {
           "make": {
-            "shell": "make -sC ${build_dir}"
+            "shell": "cmake --build ${build_dir} --parallel=8"
           }
         }
       ],

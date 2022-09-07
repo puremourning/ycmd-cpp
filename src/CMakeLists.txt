@@ -25,12 +25,18 @@ if ( MSVC )
 else()
   target_compile_options( ycmd
     PRIVATE
-      -Wall -Wextra -Werror -fvisibility=hidden -fsanitize=address
+      -Wall -Wextra -Werror -fvisibility=hidden
   )
-  target_link_options( ycmd
-    PRIVATE
-      -fsanitize=address
-  )
+  if ( ${ENABLE_ASAN} )
+    target_compile_options( ycmd
+      PRIVATE
+       -fsanitize=address
+      )
+    target_link_options( ycmd
+      PRIVATE
+        -fsanitize=address
+    )
+  endif()
 endif()
 
 target_link_libraries( ycmd

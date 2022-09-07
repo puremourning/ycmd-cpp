@@ -3,7 +3,7 @@
 CompileFlags:
   Add: [ '-Wno-deprecated-experimental-coroutine' ]
 Diagnostics:
-  UnusedIncludes: Strict
+  UnusedIncludes: None
 Hover:
   ShowAKA: Yes
 

@@ -1,14 +1,25 @@
 DEPS=.build-deps
-BUILD=cmake-build-debug
+TARGET=Debug
+
+ASAN=0
+ifeq (${TARGET},Debug)
+	ASAN=1
+endif
+
+ifeq (${ASAN},1)
+	CMAKE_ARGS=-DENABLE_ASAN=ON
+endif
 
 .PHONY: all clean distclean
 
-all: ${BUILD}
-	${DEPS}/bin/cmake --build ${BUILD} --parallel
-	${DEPS}/bin/compdb -p ${BUILD} list > compile_commands.json
+PROFILE=default
 
-${BUILD}: ${DEPS} conanfile.py
-	${DEPS}/bin/conan install -s build_type=Debug . --build missing
+all: ${TARGET}
+	${DEPS}/bin/cmake --build build/${TARGET} --parallel
+	${DEPS}/bin/compdb -p build/${TARGET} list > compile_commands.json
+
+${TARGET}: ${DEPS} conanfile.py
+	${DEPS}/bin/conan install --profile=${PROFILE} -s build_type=Debug . --build missing
 	${DEPS}/bin/conan build .
 
 ${DEPS}: dev_requirements.txt
@@ -17,7 +28,7 @@ ${DEPS}: dev_requirements.txt
 
 distclean:
 	rm -rf ${DEPS}
-	rm -rf ${BUILD}
+	rm -rf build/${TARGET}
 
 clean:
-	${MAKE} -C ${BUILD} clean
+	${MAKE} -C build/${TARGET} clean
