@@ -45,7 +45,7 @@ namespace ycmd::handlers {
   HANDLER( post, event_notification ) \
   HANDLER( post, filter_and_sort_candidates ) \
   HANDLER( get,  semantic_completion_available ) \
-  HANDLER( post, signature_help_available ) \
+  HANDLER( get,  signature_help_available ) \
   HANDLER( post, defined_subcommands ) \
   HANDLER( post, detailed_diagnostic ) \
   HANDLER( post, debug_info ) \

@@ -44,6 +44,7 @@
 #include <boost/system/detail/error_code.hpp>
 #include <boost/system/system_error.hpp>
 
+#include <cstdio>
 #include <exception>
 #include <iostream>
 #include <iterator>
@@ -133,6 +134,8 @@ namespace ycmd::server
         }
       }
 
+      LOG(info) << "Result: " << response;
+
       co_await http::async_write( stream,
                                   response,
                                   asio::use_awaitable );
@@ -179,11 +182,21 @@ int main( int argc, char **argv )
 
   if ( absl::GetFlag( FLAGS_out ).has_value() )
   {
-    // use it
+    std::freopen( absl::GetFlag( FLAGS_out ).value().c_str(),
+                  "w",
+                  stdout );
+  }
+  if ( absl::GetFlag( FLAGS_err ).has_value() )
+  {
+    std::freopen( absl::GetFlag( FLAGS_err ).value().c_str(),
+                  "w",
+                  stderr );
   }
 
+  std::cout << "YCMD Startup..." << std::endl;
+
   asio::io_context ctx;
-  tcp::acceptor acceptor( ctx, { tcp::v4(), 1337 } );
+  tcp::acceptor acceptor( ctx, { tcp::v4(), absl::GetFlag( FLAGS_port ) } );
   asio::co_spawn( ctx,
                   ycmd::server::listen( acceptor ),
                   ycmd::server::handle_unexpected_exception<> );
