@@ -1,0 +1,3 @@
+[submodule "YouCompleteMe"]
+	path = YouCompleteMe
+	url = https://github.com/puremourning/YouCompleteMe
