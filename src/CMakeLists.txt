@@ -39,12 +39,20 @@ else()
   endif()
 endif()
 
+find_package( absl REQUIRED
+  COMPONENTS
+    absl::flags
+    absl::flags_parse
+)
+
 target_link_libraries( ycmd
   PRIVATE
     YcmCore
     Boost::boost
     Boost::log
     Boost::regex
+    absl::flags
+    absl::flags_parse
     nlohmann_json::nlohmann_json
 )
 

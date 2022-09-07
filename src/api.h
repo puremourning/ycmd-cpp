@@ -219,11 +219,59 @@ namespace ycmd::responses {
     std::string exception;
     std::string message;
     std::string traceback;
+
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(
+      Error,
+      exception,
+      message,
+      traceback );
   };
 
   struct CompletionsResponse {
     std::vector<Candidate> completions;
     ColumnNum start_column;
     std::vector<Error> errors;
+
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(
+      CompletionsResponse,
+      completions,
+      start_column,
+      errors );
+  };
+
+  struct SemanticTokensResponse {
+    struct Tokens {
+      std::vector<int> tokens;
+
+      NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(
+        SemanticTokensResponse::Tokens,
+        tokens );
+    };
+
+
+    Tokens semantic_tokens;
+    std::vector<Error> errors;
+
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(
+      SemanticTokensResponse,
+      semantic_tokens,
+      errors);
+  };
+
+  struct InlayHintsResponse {
+    struct InlayHint {
+      std::string hint;
+      NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(
+        InlayHint,
+        hint
+      )
+    };
+    std::vector<InlayHint> inlay_hints;
+    std::vector<Error> errors;
+
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(
+      InlayHintsResponse,
+      inlay_hints,
+      errors);
   };
 }

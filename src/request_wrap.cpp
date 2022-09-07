@@ -14,7 +14,7 @@ namespace ycmd
   struct Lazy
   {
     Lazy( std::function<T()>&& builder_ )
-      : builder( std::move( builder_ ) )
+      : builder( builder_ )
     {
     }
 

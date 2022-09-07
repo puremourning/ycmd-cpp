@@ -3,6 +3,9 @@
 #include "handlers.cpp"
 #include "request_wrap.cpp"
 
+#include <absl/flags/internal/flag.h>
+#include <algorithm>
+#include <boost/any.hpp>
 #include <boost/asio/awaitable.hpp>
 #include <boost/asio/ip/address_v4.hpp>
 #include <boost/asio/ip/tcp.hpp>
@@ -12,15 +15,14 @@
 #include <boost/asio/experimental/use_coro.hpp>
 #include <boost/asio/coroutine.hpp>
 #include <boost/asio/co_spawn.hpp>
-
 #include <boost/asio/this_coro.hpp>
 #include <boost/asio/use_awaitable.hpp>
+
 #include <boost/beast/core.hpp>
 #include <boost/beast/core/flat_buffer.hpp>
 #include <boost/beast/core/tcp_stream.hpp>
 #include <boost/beast/http.hpp>
 #include <boost/beast/core/error.hpp>
-
 #include <boost/beast/http/empty_body.hpp>
 #include <boost/beast/http/error.hpp>
 #include <boost/beast/http/message.hpp>
@@ -28,14 +30,30 @@
 #include <boost/beast/http/status.hpp>
 #include <boost/beast/http/string_body.hpp>
 #include <boost/beast/http/write.hpp>
+
 #include <boost/log/trivial.hpp>
 
+#include <boost/program_options.hpp>
+
+#include <boost/program_options/errors.hpp>
+#include <boost/program_options/options_description.hpp>
+#include <boost/program_options/parsers.hpp>
+#include <boost/program_options/value_semantic.hpp>
+#include <boost/program_options/variables_map.hpp>
 #include <boost/system/detail/errc.hpp>
 #include <boost/system/detail/error_code.hpp>
 #include <boost/system/system_error.hpp>
+
 #include <exception>
 #include <iostream>
+#include <iterator>
+#include <optional>
+#include <ostream>
 #include <system_error>
+
+#include <absl/flags/usage.h>
+#include <absl/flags/flag.h>
+#include <absl/flags/parse.h>
 
 namespace ycmd::server
 {
@@ -150,8 +168,20 @@ namespace ycmd::server
   }
 }
 
-int main()
+ABSL_FLAG( uint16_t, port, 1337, "Port to listen on" );
+ABSL_FLAG( std::optional<std::string>, out, std::nullopt, "Output log file" );
+ABSL_FLAG( std::optional<std::string>, err, std::nullopt, "Error log file" );
+
+int main( int argc, char **argv )
 {
+  absl::SetProgramUsageMessage("A code comprehension server");
+  absl::ParseCommandLine(argc, argv);
+
+  if ( absl::GetFlag( FLAGS_out ).has_value() )
+  {
+    // use it
+  }
+
   asio::io_context ctx;
   tcp::acceptor acceptor( ctx, { tcp::v4(), 1337 } );
   asio::co_spawn( ctx,

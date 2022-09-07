@@ -36,22 +36,35 @@
 namespace ycmd::handlers {
   namespace http = boost::beast::http;
 
-  Result handle_healthy( const Request& req );
-  Result handle_ready( const Request& req );
-  Result handle_shutdown( const Request& req );
-  Result handle_completions( const Request& req );
-  Result handle_event_notification( const Request& req );
-  Result handle_filter_and_sort_candidates( const Request& req );
+#define QUOTE( x ) # x
+#define HANDLER_LIST \
+  HANDLER( get,  healthy ) \
+  HANDLER( get,  ready ) \
+  HANDLER( post, shutdown ) \
+  HANDLER( post, completions ) \
+  HANDLER( post, event_notification ) \
+  HANDLER( post, filter_and_sort_candidates ) \
+  HANDLER( get,  semantic_completion_available ) \
+  HANDLER( post, signature_help_available ) \
+  HANDLER( post, defined_subcommands ) \
+  HANDLER( post, detailed_diagnostic ) \
+  HANDLER( post, debug_info ) \
+  HANDLER( post, receive_messages ) \
+  HANDLER( post, semantic_tokens ) \
+  HANDLER( post, inlay_hints )
+
+#define HANDLER( handler_verb, handler_name )  \
+  Result handle_##handler_name( const Request& req );
+  HANDLER_LIST
+#undef HANDLER
 
   std::unordered_map<Target,Handler,boost::hash<Target>> HANDLERS = {
-    { { http::verb::get,  "/healthy" },         handle_healthy },
-    { { http::verb::get,  "/ready" },           handle_ready },
-    { { http::verb::post, "/shutdown" },        handle_shutdown },
-
-    { { http::verb::post, "/event_notification" }, handle_event_notification },
-    { { http::verb::post, "/completions" },     handle_completions },
-    { { http::verb::post, "/filter_and_sort_candidates" },
-      handle_filter_and_sort_candidates },
+#define HANDLER( handler_verb, handler_name ) \
+    { { http::verb::handler_verb, \
+        "/" QUOTE( handler_name ) }, \
+        handle_ ## handler_name },
+    HANDLER_LIST
+#undef HANDLER
   };
 
   Result handle_healthy( const Request& req )
@@ -155,7 +168,7 @@ namespace ycmd::handlers {
   }
 
   // TODO: Move
-  YouCompleteMe::IdentifierCompleter c;
+  YouCompleteMe::IdentifierCompleter identifier_completer;
 
   Result handle_event_notification( const Request& req )
   {
@@ -170,7 +183,7 @@ namespace ycmd::handlers {
     {
       case FileReadyToParse:
       {
-        c.ClearForFileAndAddIdentifiersToDatabase(
+        identifier_completer.ClearForFileAndAddIdentifiersToDatabase(
           IdentifiersFromBuffer( file ),
           file.filetypes[ 0 ],
           request_data.file_path.string() );
@@ -178,13 +191,13 @@ namespace ycmd::handlers {
       }
     }
 
-    co_return api::json_response(nullptr);
+    co_return api::json_response( json::object() );
   }
 
   Result handle_completions( const Request& req )
   {
     auto request_wrap = ycmd::make_request_wrap( req );
-    auto completions = c.CandidatesForQueryAndType(
+    auto completions = identifier_completer.CandidatesForQueryAndType(
           request_wrap.query(),
           request_wrap.first_filetype() );
     // completions = _RemoveSmallCandidates(
@@ -199,9 +212,50 @@ namespace ycmd::handlers {
     }
     responses::CompletionsResponse response {
       .completions = std::move( candidates ),
-      .start_column = (int)request_wrap.start_codepoint()  // TODO: switch to byte offset
-                                                      // TODO: calculate, update
+        // TODO: switch to byte offset
+        // TODO: calculate, update
+      .start_column = (int)request_wrap.start_codepoint()
     };
-    co_return api::json_response( candidates );
+    co_return api::json_response( response );
+  }
+
+  Result handle_semantic_completion_available( const Request& req )
+  {
+    co_return api::json_response( false );
+  }
+
+  Result handle_signature_help_available( const Request& req )
+  {
+    co_return api::json_response( false );
+  }
+
+  Result handle_defined_subcommands( const Request& req )
+  {
+    co_return api::json_response( json::array() );
+  }
+
+  Result handle_detailed_diagnostic( const Request& req )
+  {
+    co_return api::json_response( "" );
+  }
+
+  Result handle_debug_info( const Request& req )
+  {
+    co_return api::json_response( json::object() );
+  }
+
+  Result handle_receive_messages( const Request& req )
+  {
+    co_return api::json_response( false );
+  }
+
+  Result handle_semantic_tokens( const Request& req )
+  {
+    co_return api::json_response( responses::SemanticTokensResponse{} );
+  }
+
+  Result handle_inlay_hints( const Request& req )
+  {
+    co_return api::json_response( responses::InlayHintsResponse{} );
   }
 }
