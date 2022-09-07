@@ -1,4 +1,3 @@
-cmake-build-*/
 conanbuildinfo.txt
 conaninfo.txt
 graph_info.json
@@ -7,3 +6,4 @@ conan.lock
 compile_commands.json
 Session.vim
 .build-deps/
+build/

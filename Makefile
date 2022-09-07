@@ -28,7 +28,7 @@ ${DEPS}: dev_requirements.txt
 
 distclean:
 	rm -rf ${DEPS}
-	rm -rf build/${TARGET}
+	rm -rf build
 
 clean:
 	${MAKE} -C build/${TARGET} clean
