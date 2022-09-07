@@ -44,7 +44,7 @@ namespace ycmd::handlers {
   HANDLER( post, completions ) \
   HANDLER( post, event_notification ) \
   HANDLER( post, filter_and_sort_candidates ) \
-  HANDLER( get,  semantic_completion_available ) \
+  HANDLER( post, semantic_completion_available ) \
   HANDLER( get,  signature_help_available ) \
   HANDLER( post, defined_subcommands ) \
   HANDLER( post, detailed_diagnostic ) \
@@ -176,7 +176,7 @@ namespace ycmd::handlers {
       req );
     LOG(debug) << "Event name: " << j.at( "event_name" );
 
-    const auto& file = request_data.file_data[ request_data.file_path ];
+    const auto& file = request_data.file_data[ request_data.filepath ];
 
     using enum requests::EventNotification::Event;
     switch ( request_data.event_name )
@@ -186,7 +186,7 @@ namespace ycmd::handlers {
         identifier_completer.ClearForFileAndAddIdentifiersToDatabase(
           IdentifiersFromBuffer( file ),
           file.filetypes[ 0 ],
-          request_data.file_path.string() );
+          request_data.filepath.string() );
         break;
       }
     }
@@ -213,8 +213,8 @@ namespace ycmd::handlers {
     responses::CompletionsResponse response {
       .completions = std::move( candidates ),
         // TODO: switch to byte offset
-        // TODO: calculate, update
-      .start_column = (int)request_wrap.start_codepoint()
+        // TODO: calculate the actual completion start column!
+      .completion_start_column = (int)request_wrap.start_codepoint()
     };
     co_return api::json_response( response );
   }

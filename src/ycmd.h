@@ -6,6 +6,8 @@
 #include <exception>
 #include <nlohmann/json.hpp>
 
+#include <boost/log/trivial.hpp>
+
 namespace asio = boost::asio;
 namespace beast = boost::beast;
 namespace http = beast::http;

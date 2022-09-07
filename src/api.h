@@ -1,10 +1,14 @@
 #pragma once
 
 #include "ycmd.h"
+#include <boost/stacktrace.hpp>
+#include <boost/stacktrace/stacktrace_fwd.hpp>
 #include <filesystem>
 #include <nlohmann/detail/macro_scope.hpp>
+#include <sstream>
 #include <string>
 #include <optional>
+#include <type_traits>
 #include <vector>
 #include <nlohmann/json.hpp>
 #include <variant>
@@ -13,10 +17,36 @@
      friend void to_json(nlohmann::json& nlohmann_json_j, const Type& nlohmann_json_t) { nlohmann::to_json(nlohmann_json_j, static_cast<const Base&>(nlohmann_json_t)); NLOHMANN_JSON_EXPAND(NLOHMANN_JSON_PASTE(NLOHMANN_JSON_TO, __VA_ARGS__)) } \
      friend void from_json(const nlohmann::json& nlohmann_json_j, Type& nlohmann_json_t) { nlohmann::from_json(nlohmann_json_j, static_cast<Base&>(nlohmann_json_t)); Type nlohmann_json_default_obj; NLOHMANN_JSON_EXPAND(NLOHMANN_JSON_PASTE(NLOHMANN_JSON_FROM_WITH_DEFAULT, __VA_ARGS__)) }
 
+//#define NLOHMANN_JSON_TO(v1) nlohmann_json_j[#v1] = nlohmann_json_t.v1;
+
+template<typename T, typename enable = void>
+struct is_optional : std::false_type { };
+
+template<typename T>
+struct is_optional<std::optional<T>> : std::true_type { };
+
+static_assert( is_optional< std::optional< std::string > >::value == true );
+static_assert( is_optional< std::string >::value == false );
+
 namespace ycmd::api {
   using LineNum = int;
   using ColumnNum = int;
   using FilePath = std::filesystem::path;
+
+  void to_json_optional( json& j, const char* fieldName, auto&& v )
+  {
+    if constexpr ( is_optional< std::remove_cvref_t<decltype( v )> >::value ) {
+      if ( v.has_value() ) {
+        j[fieldName] = v;
+      }
+    } else {
+      j[fieldName] = v;
+    }
+  }
+
+#undef NLOHMANN_JSON_TO
+#define NLOHMANN_JSON_TO(v1) \
+    to_json_optional( nlohmann_json_j, #v1, nlohmann_json_t.v1 );
 
   struct Location {
     LineNum line_num;
@@ -75,7 +105,6 @@ namespace ycmd::api {
     std::optional<std::string> doc_string;
     std::optional<std::vector<FixIt>> fixits;
 
-    // TODO: this puts nulls for optionals :(
     NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(
       Candidate,
       insertion_text,
@@ -90,7 +119,7 @@ namespace ycmd::api {
   struct SimpleRequest {
     LineNum line_num;
     ColumnNum column_num;
-    FilePath file_path;
+    FilePath filepath;
 
     struct FileData {
       std::vector<std::string> filetypes;
@@ -113,7 +142,7 @@ namespace ycmd::api {
       SimpleRequest,
       line_num,
       column_num,
-      file_path,
+      filepath,
       file_data,
       completer_target,
       working_directory,
@@ -140,6 +169,7 @@ namespace ycmd::api {
   template<typename TRequest>
   std::pair<TRequest, json> json_request( const Request& req )
   {
+    LOG(info) << "Request data: " << req.body();
     auto j = json::parse( req.body() );
     return { j.get<TRequest>(), j };
   }
@@ -210,6 +240,13 @@ namespace ycmd::responses {
     std::string message;
     std::string traceback;
 
+    Error& set_traceback( const boost::stacktrace::stacktrace& trace ) {
+      std::ostringstream os;
+      os << trace;
+      traceback = os.str();
+      return *this;
+    }
+
     NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(
       Error,
       exception,
@@ -219,13 +256,13 @@ namespace ycmd::responses {
 
   struct CompletionsResponse {
     std::vector<Candidate> completions;
-    ColumnNum start_column;
+    ColumnNum completion_start_column;
     std::vector<Error> errors;
 
     NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(
       CompletionsResponse,
       completions,
-      start_column,
+      completion_start_column,
       errors );
   };
 

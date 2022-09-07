@@ -1,4 +1,5 @@
 #include "ycmd.h"
+#include "api.h"
 #include "identifier_utils.h"
 #include "handlers.cpp"
 #include "request_wrap.cpp"
@@ -51,6 +52,7 @@
 #include <iterator>
 #include <optional>
 #include <ostream>
+#include <string>
 #include <sys/signal.h>
 #include <system_error>
 #include <sys/ptrace.h>
@@ -80,7 +82,9 @@ namespace ycmd::server
       }
       catch ( const std::exception& e )
       {
-        LOG(fatal) << "Unhandled exception! " << e.what();
+        LOG(fatal) << "Unhandled exception! "
+                   << e.what()
+                   << boost::stacktrace::stacktrace();
         abort();
       }
     }
@@ -131,11 +135,17 @@ namespace ycmd::server
         } catch ( const std::exception& e ) {
           // unexpected exception!
           response.result(http::status::internal_server_error);
-          response.body() = e.what();
+          response.body() = json( responses::Error{
+            .exception = typeid(e).name(),
+            .message = e.what(),
+          }.set_traceback( boost::stacktrace::stacktrace() ) );
           response.prepare_payload();
         } catch ( boost::system::system_error ec ) {
           response.result(http::status::internal_server_error);
-          response.body() = ec.what();
+          response.body() = json( responses::Error{
+            .exception = ec.what(),
+            .message = ec.code().message(),
+          }.set_traceback( boost::stacktrace::stacktrace() ) );
           response.prepare_payload();
         }
       }
@@ -180,6 +190,7 @@ namespace ycmd::server
 ABSL_FLAG( uint16_t, port, 1337, "Port to listen on" );
 ABSL_FLAG( std::optional<std::string>, out, std::nullopt, "Output log file" );
 ABSL_FLAG( std::optional<std::string>, err, std::nullopt, "Error log file" );
+ABSL_FLAG( bool, wait_for_debugger, false, "Wait in a loop until attach" );
 
 void crash_handler(int signum)
 {
@@ -222,10 +233,16 @@ int main( int argc, char **argv )
                   stderr );
   }
 
-  std::cout << "Waitign for debugger..." << std::endl;
-  while ( !ptrace( PT_TRACE_ME, 0, 0, 0 ) )
+  if ( absl::GetFlag( FLAGS_wait_for_debugger ) ||
+       getenv( "YCMD_WAIT_FOR_DEBUGGER" ) )
   {
-    sleep( 100 );
+    std::cout << "Waitign for debugger (set should_continue=true)..."
+              << std::endl;
+    volatile bool should_continue = false;
+    while ( !should_continue )
+    {
+      sleep( 100 );
+    }
   }
 
 

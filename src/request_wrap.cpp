@@ -40,7 +40,7 @@ namespace ycmd
 
     Lazy<std::vector<std::string>> lines{ [this]() {
       std::vector<std::string> file_lines;
-      const auto& contents = req.file_data[ req.file_path ].contents;
+      const auto& contents = req.file_data[ req.filepath ].contents;
       boost::sregex_token_iterator p{ contents.begin(),
                                       contents.end(),
                                       SPLIT_LINES,
@@ -61,29 +61,39 @@ namespace ycmd
     } };
 
     Lazy<std::string> first_filetype{ [this]() {
-      return req.file_data[ req.file_path ].filetypes[ 0 ];
+      return req.file_data[ req.filepath ].filetypes[ 0 ];
     } };
 
-    Lazy<size_t> start_codepoint{ [this]() {
+    Lazy<size_t> start_codepoint{ [this]() -> size_t {
       // TODO: This is .. wrong and kinda messy
       // Also line_value() is not impplementd
       auto end = column_codepoint() - 1; // 0-based index into line_value()
+                                         // but points 1-past-the-end
 
-      if ( end == 0 )
-        return end + 1; // we return a 1-based offset into line_value()
+      if ( end <= 0 )
+        return 1; // we return a 1-based offset into line_value()
 
       const auto& q = line_value();
       // StartOfLongestIdentifierEndingAt column_codepoint()
       const auto& identifier_regex = IdentifierRegexForFiletype(
         first_filetype() );
 
-      for ( size_t start = 0; start < end - 1; ++start ) {
+      for ( size_t start = end - 1; ; --start ) {
         if ( !IsIdentifier( identifier_regex,
-                            { q.data() + start, end - 1 - start } ) ) {
-          return start + 1;
+                            { q.data() + start, end - start } ) ) {
+          return start + 2; // this is the first non-identifier character. we
+                            // start at the next character + 1 for returning
+                            // 1-based value
+        }
+
+        if ( start == 0 )
+        {
+          return 1;
         }
       }
-      return end + 1;
+      // impossible codepath
+      abort();
+      return 1;
     } };
 
     Lazy<size_t> column_codepoint{ [this]() {
@@ -92,7 +102,7 @@ namespace ycmd
 
     Lazy<std::string> query{ [this]() {
       return line_value().substr( start_codepoint() - 1,
-                                  column_codepoint() - 1 );
+                                  column_codepoint() - start_codepoint() - 1 );
     } };
   };
 
