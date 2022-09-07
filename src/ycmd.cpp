@@ -101,8 +101,9 @@ namespace ycmd::server
                                  req,
                                  asio::use_awaitable );
 
-      auto handler = handlers::HANDLERS.find(
-        { req.method(), { req.target().data(), req.target().length() } } );
+      std::string_view t = { req.target().data(), req.target().length() };
+      auto target = *absl::StrSplit(t, '?').begin();
+      auto handler = handlers::HANDLERS.find( { req.method(), target } );
 
       Response response;
       bool do_shutdown = false;
