@@ -32,6 +32,7 @@
 #include <boost/beast/http/string_body.hpp>
 #include <boost/beast/http/write.hpp>
 
+#include <boost/core/ignore_unused.hpp>
 #include <boost/log/trivial.hpp>
 
 #include <boost/stacktrace.hpp>
@@ -62,10 +63,15 @@
 
 namespace ycmd::server
 {
-  void server_abort( boost::system::error_code ec )
+  bool check_hmac( Request& req )
   {
-    LOG(fatal) << ec.message();
-    abort();
+    boost::ignore_unused( req );
+    return true;
+  }
+
+  void write_hmac( Response& resp )
+  {
+    boost::ignore_unused( resp );
   }
 
   template< typename... Ts >
@@ -104,6 +110,12 @@ namespace ycmd::server
                                  asio::use_awaitable );
 
       Request &req = parser.get();
+
+      if ( !check_hmac(req) )
+      {
+        co_return;
+      }
+
       std::string_view t = { req.target().data(), req.target().length() };
       auto target = *absl::StrSplit(t, '?').begin();
       auto handler = handlers::HANDLERS.find( { req.method(), target } );
@@ -148,6 +160,8 @@ namespace ycmd::server
           response.prepare_payload();
         }
       }
+
+      write_hmac(response);
 
       LOG(info) << "Result: " << response;
 
