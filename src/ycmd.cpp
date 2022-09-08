@@ -43,6 +43,7 @@
 
 #include <cstdio>
 #include <exception>
+#include <fstream>
 #include <iostream>
 #include <iterator>
 #include <limits>
@@ -183,12 +184,29 @@ namespace ycmd::server
       }
     }
   }
+
+  bool read_options( std::string_view options_file_name )
+  {
+    // TODO: What if this faile? Thros and exception?
+    std::ifstream infile( options_file_name );
+    try {
+      user_options = json::parse( infile );
+    } catch (const json::exception &e) {
+      LOG(info) << "Failed to parse " << options_file_name << ": " << e.what();
+      return false;
+    }
+
+    return true;
+  }
 }
 
 ABSL_FLAG( uint16_t, port, 1337, "Port to listen on" );
 ABSL_FLAG( std::optional<std::string>, out, std::nullopt, "Output log file" );
 ABSL_FLAG( std::optional<std::string>, err, std::nullopt, "Error log file" );
 ABSL_FLAG( bool, wait_for_debugger, false, "Wait in a loop until attach" );
+ABSL_FLAG( std::optional<std::string>,
+           options_file,
+           std::nullopt, "Default options" );
 
 void crash_handler(int signum)
 {
@@ -223,12 +241,27 @@ int main( int argc, char **argv )
     std::freopen( absl::GetFlag( FLAGS_out ).value().c_str(),
                   "w",
                   stdout );
+    // TODO: check the result
   }
   if ( absl::GetFlag( FLAGS_err ).has_value() )
   {
     std::freopen( absl::GetFlag( FLAGS_err ).value().c_str(),
                   "w",
                   stderr );
+    // TODO: check the result
+  }
+
+  if ( !absl::GetFlag( FLAGS_options_file ).has_value() )
+  {
+    // TODO: change this ? do we really need this to be mandatory
+    std::cerr << "Must supply --options_file" << std::endl;
+    return 1;
+  }
+
+  if (!ycmd::server::read_options(
+      absl::GetFlag( FLAGS_options_file ).value() ))
+  {
+    return 2;
   }
 
   if ( absl::GetFlag( FLAGS_wait_for_debugger ) ||
@@ -244,7 +277,7 @@ int main( int argc, char **argv )
   }
 
 
-  std::cout << "YCMD Startup..." << std::endl;
+  LOG(info) << "ycmd starting...";
 
   asio::io_context ctx;
   tcp::acceptor acceptor( ctx, { tcp::v4(), absl::GetFlag( FLAGS_port ) } );

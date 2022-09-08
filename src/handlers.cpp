@@ -197,7 +197,8 @@ namespace ycmd::handlers {
   {
     auto request_wrap = ycmd::make_request_wrap( req );
     // TODO settings[ min_num_of_chars_for_completion ]
-    if ( request_wrap.query().length() < 2 )
+    if ( request_wrap.query().length() <
+          server::user_options[ "min_num_of_chars_for_completion" ] )
     {
       co_return api::json_response( json::array() );
     }
@@ -209,7 +210,8 @@ namespace ycmd::handlers {
     std::vector<api::Candidate> candidates;
     for ( auto& completion_sring : completions ) {
       // TODO settings[ min_num_identifier_candidate_chars ]
-      if ( completion_sring.length() > 0 )
+      if ( completion_sring.length() >
+            server::user_options[ "min_num_identifier_candidate_chars" ] )
       {
         candidates.push_back( api::Candidate{
           .insertion_text = completion_sring,

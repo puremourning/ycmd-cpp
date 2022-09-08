@@ -170,6 +170,7 @@ namespace ycmd::api {
   std::pair<TRequest, json> json_request( const Request& req )
   {
     LOG(info) << "Request data: " << req.body();
+    // TODO: What if this faile? Thros and exception?
     auto j = json::parse( req.body() );
     return { j.get<TRequest>(), j };
   }

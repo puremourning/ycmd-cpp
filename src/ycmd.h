@@ -61,5 +61,9 @@ namespace ycmd
     Response response;
   };
 
+  namespace server {
+    json user_options;
+  }
+
   struct Shutdown: std::exception {};
 }
