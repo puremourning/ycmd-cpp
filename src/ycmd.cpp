@@ -36,11 +36,6 @@
 
 #include <boost/stacktrace.hpp>
 
-#include <boost/program_options/errors.hpp>
-#include <boost/program_options/options_description.hpp>
-#include <boost/program_options/parsers.hpp>
-#include <boost/program_options/value_semantic.hpp>
-#include <boost/program_options/variables_map.hpp>
 #include <boost/stacktrace/stacktrace_fwd.hpp>
 #include <boost/system/detail/errc.hpp>
 #include <boost/system/detail/error_code.hpp>
@@ -50,6 +45,7 @@
 #include <exception>
 #include <iostream>
 #include <iterator>
+#include <limits>
 #include <optional>
 #include <ostream>
 #include <string>
@@ -97,14 +93,16 @@ namespace ycmd::server
     auto stream = beast::tcp_stream( std::move( socket ) );
     beast::flat_buffer buffer;
 
-    Request req;
+    RequestParser parser;
+    parser.body_limit( std::numeric_limits< uint64_t >::max() );
     try
     {
       co_await http::async_read( stream,
                                  buffer,
-                                 req,
+                                 parser,
                                  asio::use_awaitable );
 
+      Request &req = parser.get();
       std::string_view t = { req.target().data(), req.target().length() };
       auto target = *absl::StrSplit(t, '?').begin();
       auto handler = handlers::HANDLERS.find( { req.method(), target } );

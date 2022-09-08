@@ -3,6 +3,7 @@
 #include <boost/asio/awaitable.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
+#include <boost/beast/http/parser.hpp>
 #include <exception>
 #include <nlohmann/json.hpp>
 
@@ -44,6 +45,7 @@ namespace nlohmann
 
 namespace ycmd
 {
+  using RequestParser = http::request_parser<http::string_body>;
   using Request = http::request<http::string_body>;
   using Response = http::response<http::string_body>;
   using Result = asio::awaitable<Response>;
