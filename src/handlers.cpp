@@ -86,39 +86,37 @@ namespace ycmd::handlers {
 
   Result handle_filter_and_sort_candidates( const Request& req )
   {
-    // FIXME: Unfortuantely, this is really inefficent. It does _tons_ of
-    // copies. It might actually be better to use the json _directly_ rather
-    // than try and parse it into a struct with a variant. Or alternatively,
-    // just store a json ref in the request struct.
     auto [ request_data, _ ] =
       api::json_request<requests::FilterAndSortCandidatesRequest>( req );
 
     std::vector<std::string> strings;
     strings.reserve( request_data.candidates.size() );
-    for( const auto& c : request_data.candidates ) {
+    for( const auto& c : request_data.candidates )
+    {
       strings.push_back( c[ request_data.sort_property ] );
     }
 
     namespace ycm = YouCompleteMe;
     auto repository_candidates =
       ycm::Repository<ycm::Candidate>::Instance().GetElements(
-        std::move(strings) );
+        std::move( strings ) );
 
     std::vector< ycm::ResultAnd< size_t > > result_and_objects;
     ycm::Word query_object( std::move( request_data.query ) );
 
-    for ( size_t i = 0; i < repository_candidates.size(); ++i ) {
+    for ( size_t i = 0; i < repository_candidates.size(); ++i )
+    {
       const ycm::Candidate *candidate = repository_candidates[ i ];
 
-      if ( candidate->IsEmpty() ||
-           !candidate->ContainsBytes( query_object ) ) {
+      if ( candidate->IsEmpty() || !candidate->ContainsBytes( query_object ) )
+      {
         continue;
       }
 
-      YouCompleteMe::Result result = candidate->QueryMatchResult(
-        query_object );
+      ycm::Result result = candidate->QueryMatchResult( query_object );
 
-      if ( result.IsSubsequence() ) {
+      if ( result.IsSubsequence() )
+      {
         result_and_objects.emplace_back( result, i );
       }
     }
@@ -127,7 +125,8 @@ namespace ycmd::handlers {
 
     std::vector<json> filtered_candidates;
     filtered_candidates.reserve( result_and_objects.size() );
-    for ( const auto& r : result_and_objects ) {
+    for ( const auto& r : result_and_objects )
+    {
       filtered_candidates.push_back(
         request_data.candidates[ r.extra_object_ ] );
     }
@@ -176,7 +175,8 @@ namespace ycmd::handlers {
           request_wrap.first_filetype() );
 
     std::vector<api::Candidate> candidates;
-    for ( auto& completion_sring : completions ) {
+    for ( auto& completion_sring : completions )
+    {
       if ( completion_sring.length() >
             server::user_options[ "min_num_identifier_candidate_chars" ] )
       {

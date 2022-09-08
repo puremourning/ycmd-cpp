@@ -46,7 +46,8 @@ namespace ycmd
                                       SPLIT_LINES,
                                       -1 };
       boost::sregex_token_iterator end{};
-      while ( p != end ) {
+      while ( p != end )
+      {
         file_lines.push_back( *p++ );
       }
       return file_lines;
@@ -54,7 +55,8 @@ namespace ycmd
 
     Lazy<std::string> line_value{ [this]() {
       const auto &file_lines = lines();
-      if ( req.line_num >= 1 && (size_t)req.line_num <= file_lines.size() ) {
+      if ( req.line_num >= 1 && (size_t)req.line_num <= file_lines.size() )
+      {
         return file_lines[ req.line_num -1 ];
       }
       return std::string( "" );
@@ -78,7 +80,8 @@ namespace ycmd
       const auto& identifier_regex = IdentifierRegexForFiletype(
         first_filetype() );
 
-      for ( size_t start = end - 1; ; --start ) {
+      for ( size_t start = end - 1; ; --start )
+      {
         if ( !IsIdentifier( identifier_regex,
                             { q.data() + start, end - start } ) ) {
           return start + 2; // this is the first non-identifier character. we

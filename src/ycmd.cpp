@@ -169,7 +169,8 @@ namespace ycmd::server
                                   response,
                                   asio::use_awaitable );
 
-      if ( do_shutdown ) {
+      if ( do_shutdown )
+      {
         acceptor.cancel();
       }
     }
@@ -191,7 +192,8 @@ namespace ycmd::server
             co_await acceptor.async_accept( asio::use_awaitable ) ),
           handle_unexpected_exception<> );
       } catch ( boost::system::system_error& ec ) {
-        if ( ec.code() == boost::system::errc::operation_canceled ) {
+        if ( ec.code() == boost::system::errc::operation_canceled )
+        {
           LOG(info) << "Closing socket on request";
           break;
         }
