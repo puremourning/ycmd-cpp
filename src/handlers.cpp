@@ -93,77 +93,46 @@ namespace ycmd::handlers {
     auto [ request_data, _ ] =
       api::json_request<requests::FilterAndSortCandidatesRequest>( req );
 
-    auto GetResults = [&, &request_data=request_data](
-      const auto& candidates ) {
-
-      using T = std::remove_cvref_t<decltype(candidates)>;
-
-      std::vector<std::string> strings;
-      strings.reserve( candidates.size() );
-      for( const auto& c : candidates ) {
-        if constexpr ( std::is_same_v< typename T::value_type, std::string > ) {
-          strings.push_back( c );
-        } else if constexpr ( std::is_same_v< typename T::value_type, json > ) {
-          strings.push_back( c.at( request_data.sort_property.value_or(
-                "insertion_text" ) ) );
-        } else {
-          strings.push_back( c.insertion_text );
-        }
-      }
-
-      using namespace YouCompleteMe;
-      auto repository_candidates =
-        Repository<Candidate>::Instance().GetElements( std::move(strings) );
-
-      std::vector< ResultAnd< size_t > > result_and_objects;
-      Word query_object( std::move( request_data.query ) );
-
-      for ( size_t i = 0; i < candidates.size(); ++i ) {
-        const Candidate *candidate = repository_candidates[ i ];
-
-        if ( candidate->IsEmpty() ||
-             !candidate->ContainsBytes( query_object ) ) {
-          continue;
-        }
-
-        YouCompleteMe::Result result = candidate->QueryMatchResult(
-          query_object );
-
-        if ( result.IsSubsequence() ) {
-          result_and_objects.emplace_back( result, i );
-        }
-      }
-      constexpr auto MAX_CANDIDATES = 0;
-      PartialSort( result_and_objects, MAX_CANDIDATES );
-
-      // Now we have a sorted/filtered list of YCM-land Candidates paired with
-      // their index in the input. We return a vector of the original input
-      // indices matching.
-      std::remove_cvref_t<decltype(candidates)> filtered_candidates;
-
-      filtered_candidates.reserve( result_and_objects.size() );
-      for ( const auto& r : result_and_objects ) {
-        filtered_candidates.push_back(
-          candidates[ r.extra_object_ ] );
-      }
-
-      return api::json_response( filtered_candidates );
-    };
-
-    switch( request_data.candidate_type )
-    {
-    case requests::FilterAndSortCandidatesRequest::CandidateType::CANDIDATES:
-      co_return GetResults( std::get<std::vector<api::Candidate>>(
-          request_data.candidates ) );
-    case requests::FilterAndSortCandidatesRequest::CandidateType::STRINGS:
-      co_return GetResults( std::get<std::vector<std::string>>(
-          request_data.candidates ) );
-    case requests::FilterAndSortCandidatesRequest::CandidateType::UNKNOWN:
-      co_return GetResults( std::get<std::vector<json>>(
-          request_data.candidates ) );
+    std::vector<std::string> strings;
+    strings.reserve( request_data.candidates.size() );
+    for( const auto& c : request_data.candidates ) {
+      strings.push_back( c[ request_data.sort_property ] );
     }
 
-    co_return api::json_response(false);
+    namespace ycm = YouCompleteMe;
+    auto repository_candidates =
+      ycm::Repository<ycm::Candidate>::Instance().GetElements(
+        std::move(strings) );
+
+    std::vector< ycm::ResultAnd< size_t > > result_and_objects;
+    ycm::Word query_object( std::move( request_data.query ) );
+
+    for ( size_t i = 0; i < repository_candidates.size(); ++i ) {
+      const ycm::Candidate *candidate = repository_candidates[ i ];
+
+      if ( candidate->IsEmpty() ||
+           !candidate->ContainsBytes( query_object ) ) {
+        continue;
+      }
+
+      YouCompleteMe::Result result = candidate->QueryMatchResult(
+        query_object );
+
+      if ( result.IsSubsequence() ) {
+        result_and_objects.emplace_back( result, i );
+      }
+    }
+    constexpr auto MAX_CANDIDATES = 0;
+    ycm::PartialSort( result_and_objects, MAX_CANDIDATES );
+
+    std::vector<json> filtered_candidates;
+    filtered_candidates.reserve( result_and_objects.size() );
+    for ( const auto& r : result_and_objects ) {
+      filtered_candidates.push_back(
+        request_data.candidates[ r.extra_object_ ] );
+    }
+
+    co_return api::json_response( filtered_candidates );
   }
 
   // TODO: Move
@@ -196,7 +165,6 @@ namespace ycmd::handlers {
   Result handle_completions( const Request& req )
   {
     auto request_wrap = ycmd::make_request_wrap( req );
-    // TODO settings[ min_num_of_chars_for_completion ]
     if ( request_wrap.query().length() <
           server::user_options[ "min_num_of_chars_for_completion" ] )
     {
@@ -209,7 +177,6 @@ namespace ycmd::handlers {
 
     std::vector<api::Candidate> candidates;
     for ( auto& completion_sring : completions ) {
-      // TODO settings[ min_num_identifier_candidate_chars ]
       if ( completion_sring.length() >
             server::user_options[ "min_num_identifier_candidate_chars" ] )
       {
