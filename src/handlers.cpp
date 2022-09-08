@@ -216,7 +216,9 @@ namespace ycmd::handlers {
 
   Result handle_debug_info( const Request& req )
   {
-    co_return api::json_response( json::object() );
+    auto request_wrap = ycmd::make_request_wrap( req );
+
+    co_return api::json_response( responses::DebugInfoResponse{} );
   }
 
   Result handle_receive_messages( const Request& req )

@@ -4,6 +4,8 @@
 #include <boost/stacktrace.hpp>
 #include <boost/stacktrace/stacktrace_fwd.hpp>
 #include <filesystem>
+#include <nlohmann/detail/conversions/from_json.hpp>
+#include <nlohmann/detail/conversions/to_json.hpp>
 #include <nlohmann/detail/macro_scope.hpp>
 #include <sstream>
 #include <string>
@@ -19,34 +21,77 @@
 
 //#define NLOHMANN_JSON_TO(v1) nlohmann_json_j[#v1] = nlohmann_json_t.v1;
 
-template<typename T, typename enable = void>
-struct is_optional : std::false_type { };
-
-template<typename T>
-struct is_optional<std::optional<T>> : std::true_type { };
-
-static_assert( is_optional< std::optional< std::string > >::value == true );
-static_assert( is_optional< std::string >::value == false );
-
 namespace ycmd::api {
   using LineNum = int;
   using ColumnNum = int;
   using FilePath = std::filesystem::path;
 
+  // An optional which should be on the wire as null. Normally we don't include
+  // optional values when serialising
+  template< typename T >
+  struct Nullable : std::optional< T > {};
+
+  template<typename T, typename enable = void>
+  struct is_optional : std::false_type { };
+
+  template<typename T>
+  struct is_optional<std::optional<T>> : std::true_type { };
+
+  template<typename T>
+  struct is_optional<Nullable<T>> : std::false_type {};
+
+  static_assert( !is_optional<std::string>::value );
+  static_assert( is_optional<std::optional<std::string>>::value );
+  static_assert( !is_optional<Nullable<std::string>>::value );
+
+  // we write our own field-by-field code used by the macros below. We do that
+  // do change the default behaviour of std::optional to be present/not
+  // pressent, and introduce Nullable<T> as a type which expects/outputs nulls
+
   void to_json_optional( json& j, const char* fieldName, auto&& v )
   {
-    if constexpr ( is_optional< std::remove_cvref_t<decltype( v )> >::value ) {
-      if ( v.has_value() ) {
+    using T = std::remove_cvref_t<decltype( v )>;
+    if constexpr ( is_optional< T >::value )
+    {
+      if ( v.has_value() )
+      {
         j[fieldName] = v;
       }
-    } else {
+    }
+    else
+    {
       j[fieldName] = v;
     }
+  }
+
+  // special case for Nullable<T> - use the default behvaiour
+  template<typename T>
+  void to_json_optional( json& j, const char* fieldName, Nullable<T> v )
+  {
+    j[fieldName] = static_cast<std::optional<T>>(v);
+  }
+
+  void from_json_optional( const json& j, const char *fieldName, auto&& v )
+  {
+    j.at( fieldName ).get_to( v );
+  }
+
+  // special case for Nullable<T> - use the default behvaiour
+  template<typename T>
+  void from_json_optional( const json& j,
+                           const char *fieldName,
+                           Nullable< T >& v )
+  {
+    j.at( fieldName ).get_to( static_cast< std::optional< T >& >( v ) );
   }
 
 #undef NLOHMANN_JSON_TO
 #define NLOHMANN_JSON_TO(v1) \
     to_json_optional( nlohmann_json_j, #v1, nlohmann_json_t.v1 );
+
+#undef NLOHMANN_JSON_FROM
+#define NLOHMANN_JSON_FROM(v1) \
+    from_json_optional( nlohmann_json_j, #v1, nlohmann_json_t.v1 );
 
   struct Location {
     LineNum line_num;
@@ -57,7 +102,7 @@ namespace ycmd::api {
       Location,
       line_num,
       column_number,
-      filepath)
+      filepath);
   };
 
   struct Range {
@@ -67,7 +112,7 @@ namespace ycmd::api {
     NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(
       Range,
       start,
-      end)
+      end);
   };
 
   struct FixIt {
@@ -174,7 +219,6 @@ namespace ycmd::api {
     auto j = json::parse( req.body() );
     return { j.get<TRequest>(), j };
   }
-
 }
 
 namespace ycmd::requests {
@@ -205,7 +249,6 @@ namespace ycmd::requests {
     // tag_files
     // syntax_keywords
 
-
     NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT_AND_BASE(
       EventNotification,
       SimpleRequest,
@@ -215,7 +258,6 @@ namespace ycmd::requests {
   NLOHMANN_JSON_SERIALIZE_ENUM( EventNotification::Event, {
     {EventNotification::Event::FileReadyToParse, "FileReadyToParse"},
   });
-
 }
 
 namespace ycmd::responses {
@@ -261,14 +303,13 @@ namespace ycmd::responses {
         tokens );
     };
 
-
     Tokens semantic_tokens;
     std::vector<Error> errors;
 
     NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(
       SemanticTokensResponse,
       semantic_tokens,
-      errors);
+      errors );
   };
 
   struct InlayHintsResponse {
@@ -276,8 +317,7 @@ namespace ycmd::responses {
       std::string hint;
       NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(
         InlayHint,
-        hint
-      )
+        hint );
     };
     std::vector<InlayHint> inlay_hints;
     std::vector<Error> errors;
@@ -286,5 +326,51 @@ namespace ycmd::responses {
       InlayHintsResponse,
       inlay_hints,
       errors);
+  };
+
+  struct DebugInfoResponse {
+    // Probably needed to run jedi...
+    struct Python {
+      std::string executable{};
+      Nullable<std::string> version{std::nullopt};
+
+      NLOHMANN_DEFINE_TYPE_INTRUSIVE(
+        Python,
+        executable,
+        version
+      );
+    } python;
+
+    struct Clang {
+      bool has_support{false};
+      Nullable<std::string> version{std::nullopt};
+
+      NLOHMANN_DEFINE_TYPE_INTRUSIVE(
+        Clang,
+        has_support,
+        version
+      );
+    } clang;
+
+    struct ExtraConf {
+      std::string path;
+      bool is_loaded;
+
+      NLOHMANN_DEFINE_TYPE_INTRUSIVE(
+        ExtraConf,
+        path,
+        is_loaded
+      );
+    } extra_conf;
+
+    json completer;
+
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(
+      DebugInfoResponse,
+      python,
+      clang,
+      extra_conf,
+      completer
+    );
   };
 }
