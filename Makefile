@@ -1,15 +1,6 @@
 DEPS=.build-deps
 TARGET=Debug
 
-ASAN=0
-ifeq (${TARGET},Debug)
-	ASAN=1
-endif
-
-ifeq (${ASAN},1)
-	CMAKE_ARGS=-DENABLE_ASAN=ON
-endif
-
 .PHONY: all clean distclean
 
 PROFILE=default

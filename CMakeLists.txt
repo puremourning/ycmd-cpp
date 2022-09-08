@@ -18,7 +18,7 @@ set( CMAKE_CXX_STANDARD 20 )
 set( CMAKE_CXX_EXTENSIONS OFF )
 set( CMAKE_CXX_STANDARD_REQUIRED ON )
 
-option( ENABLE_ASAN "Build with address sanitizer" OFF )
+option( ENABLE_ASAN "Build with address sanitizer" ON )
 
 # Always generate compilation database
 set( CMAKE_EXPORT_COMPILE_COMMANDS ON )
