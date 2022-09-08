@@ -22,7 +22,7 @@ class YcmdConan(ConanFile):
 
   # Requirements
   requires = (
-    "boost/1.79.0",
+    "boost/1.80.0@puremourning/boost",
     "nlohmann_json/3.11.2",
     "abseil/20220623.0",
     "gtest/1.12.1",
