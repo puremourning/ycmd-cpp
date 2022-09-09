@@ -1,7 +1,7 @@
 add_subdirectory( core )
 add_executable( ycmd )
 
-set( SOURCES ycmd.h api.h handlers.cpp request_wrap.cpp )
+set( SOURCES ycmd.h api.h identifier_utils.cpp handlers.cpp request_wrap.cpp )
 
 target_sources( ycmd
   PRIVATE

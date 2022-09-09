@@ -3,7 +3,7 @@
 #include "core/Repository.h"
 #include "core/Result.h"
 #include "ycmd.h"
-#include "identifier_utils.h"
+#include "identifier_utils.cpp"
 #include "api.h"
 #include "request_wrap.cpp"
 #include <boost/asio/awaitable.hpp>
@@ -42,6 +42,7 @@ namespace ycmd::handlers {
   HANDLER( post, shutdown ) \
   HANDLER( post, completions ) \
   HANDLER( post, event_notification ) \
+  HANDLER( post, run_completer_command ) \
   HANDLER( post, filter_and_sort_candidates ) \
   HANDLER( post, semantic_completion_available ) \
   HANDLER( get,  signature_help_available ) \
@@ -156,7 +157,25 @@ namespace ycmd::handlers {
           request_data.filepath.string() );
         break;
       }
-    }
+      case FileSave:
+        break;
+      case BufferVisit:
+        break;
+      case BufferUnload:
+        break;
+      case InsertLeave:
+        //identifier_completer.AddSingleIdentifierToDatabase(
+        //  IdentifierUnderCursor( file ),
+        //  file.filetypes[ 0 ],
+        //  request_data.filepath.string() );
+        break;
+      case CurrentIdentifierFinished:
+        //identifier_completer.AddSingleIdentifierToDatabase(
+        //  IdentifierBeforeCursor( file ),
+        //  file.filetypes[ 0 ],
+        //  request_data.filepath.string() );
+        break;
+      }
 
     co_return api::json_response( json::object() );
   }
@@ -194,6 +213,11 @@ namespace ycmd::handlers {
     co_return api::json_response( response );
   }
 
+  Result handle_run_completer_command( const Request& req )
+  {
+    co_return api::json_response( nullptr );
+  }
+
   Result handle_semantic_completion_available( const Request& req )
   {
     co_return api::json_response( false );
@@ -223,6 +247,7 @@ namespace ycmd::handlers {
 
   Result handle_receive_messages( const Request& req )
   {
+    // co_wait get_messages_for_compelter
     co_return api::json_response( false );
   }
 

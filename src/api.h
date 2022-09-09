@@ -240,10 +240,21 @@ namespace ycmd::requests {
 
   struct EventNotification : SimpleRequest
   {
+#define EVENTS \
+    EVENT( FileReadyToParse ) \
+    EVENT( FileSave ) \
+    EVENT( BufferVisit ) \
+    EVENT( BufferUnload ) \
+    EVENT( InsertLeave ) \
+    EVENT( CurrentIdentifierFinished )
+
+#define EVENT( e ) e,
     enum class Event
     {
-      FileReadyToParse
+      EVENTS
     };
+#undef EVENT
+
     Event event_name;
 
     // tag_files
@@ -255,9 +266,9 @@ namespace ycmd::requests {
       event_name);
   };
 
-  NLOHMANN_JSON_SERIALIZE_ENUM( EventNotification::Event, {
-    {EventNotification::Event::FileReadyToParse, "FileReadyToParse"},
-  });
+#define EVENT( e ) { EventNotification::Event::e, #e },
+  NLOHMANN_JSON_SERIALIZE_ENUM( EventNotification::Event, { EVENTS } )
+#undef EVENT
 }
 
 namespace ycmd::responses {

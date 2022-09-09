@@ -1,6 +1,6 @@
 #include "ycmd.h"
 #include "api.h"
-#include "identifier_utils.h"
+#include "identifier_utils.cpp"
 #include "handlers.cpp"
 #include "request_wrap.cpp"
 
