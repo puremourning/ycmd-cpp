@@ -19,6 +19,9 @@
 #include <boost/asio/this_coro.hpp>
 #include <boost/asio/use_awaitable.hpp>
 
+#include "boost/url/url.hpp"
+#include "boost/url/url_view.hpp"
+
 #include <boost/beast/core.hpp>
 #include <boost/beast/core/flat_buffer.hpp>
 #include <boost/beast/core/tcp_stream.hpp>
@@ -61,8 +64,8 @@
 #include <absl/strings/str_split.h>
 #include <unistd.h>
 
-//#include <boost/url.hpp>
-//#include <boost/url/src.hpp>
+#include <boost/url.hpp>
+#include <boost/url/src.hpp>
 
 namespace ycmd::server
 {
@@ -120,8 +123,8 @@ namespace ycmd::server
       }
 
       std::string_view t = { req.target().data(), req.target().length() };
-      auto target = *absl::StrSplit(t, '?').begin();
-      auto handler = handlers::HANDLERS.find( { req.method(), target } );
+      auto url = boost::urls::url_view( req.target() );
+      auto handler = handlers::HANDLERS.find( { req.method(), url.path() } );
 
       Response response;
       bool do_shutdown = false;
