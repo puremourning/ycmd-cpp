@@ -14,12 +14,12 @@ namespace
     // we have to new/delete fresh ones
     std::unique_ptr<RequestWrap> wrap;
 
-    // TODO: Overload with a proper json version and use the parser
-    void BuildRequest( int line_num,
-                       int column_num,
-                       std::string filetype,
-                       std::string filename,
-                       std::string contents )
+
+    void BuildRequestForTypes( int line_num,
+                               int column_num,
+                               std::vector<std::string> filetypes,
+                               std::string filename,
+                               std::string contents )
     {
       // std::cout << "Req "
       //           << filename << "@" << line_num << ":" << column_num
@@ -31,9 +31,23 @@ namespace
       wrap->req.file_data.emplace(
         filename,
         api::SimpleRequest::FileData{
-          .filetypes = { filetype },
+          .filetypes = std::move(filetypes),
           .contents = contents,
         } );
+    }
+
+    // TODO: Overload with a proper json version and use the parser
+    void BuildRequest( int line_num,
+                       int column_num,
+                       std::string filetype,
+                       std::string filename,
+                       std::string contents )
+    {
+      return BuildRequestForTypes( line_num,
+                                   column_num,
+                                   { filetype },
+                                   filename,
+                                   contents );
     }
   };
 }
@@ -142,6 +156,16 @@ TEST_F(Fixture, query)
   EXPECT_EQ( wrap->start_codepoint(), 19 );
   EXPECT_EQ( wrap->column_codepoint(), 26 );
   EXPECT_EQ( wrap->query(), "AndFive" );
+}
+
+TEST_F( Fixture, first_filetype )
+{
+  BuildRequestForTypes( 1, 26, { "tst", "toast" }, "test_file", "" );
+  EXPECT_EQ( wrap->first_filetype(), "tst" );
+  BuildRequestForTypes( 1, 26, { "tst" }, "test_file", "" );
+  EXPECT_EQ( wrap->first_filetype(), "tst" );
+  BuildRequestForTypes( 1, 26, { "toast", "c" }, "test_file", "" );
+  EXPECT_EQ( wrap->first_filetype(), "toast" );
 }
 
 int main(int argc, char** argv)
