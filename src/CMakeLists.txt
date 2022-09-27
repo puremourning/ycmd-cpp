@@ -1,7 +1,18 @@
 add_subdirectory( core )
 add_executable( ycmd )
 
-set( SOURCES ycmd.h api.h identifier_utils.cpp handlers.cpp request_wrap.cpp )
+set( SOURCES
+  ycmd.h
+  api.h
+  identifier_utils.cpp
+  handlers.cpp
+  request_wrap.cpp
+  server.cpp
+
+  completers/general/filename_completer.cpp
+  completers/general/ultisnips_completer.cpp
+  completers/cpp/clangd_completer.cpp
+)
 
 target_sources( ycmd
   PRIVATE

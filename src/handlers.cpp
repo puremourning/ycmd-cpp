@@ -3,6 +3,7 @@
 #include "core/Repository.h"
 #include "core/Result.h"
 #include "ycmd.h"
+#include "server.cpp"
 #include "identifier_utils.cpp"
 #include "api.h"
 #include "request_wrap.cpp"
@@ -135,9 +136,6 @@ namespace ycmd::handlers {
     co_return api::json_response( filtered_candidates );
   }
 
-  // TODO: Move
-  YouCompleteMe::IdentifierCompleter identifier_completer;
-
   Result handle_event_notification( const Request& req )
   {
     auto [ request_data, j ] = api::json_request<requests::EventNotification>(
@@ -151,7 +149,7 @@ namespace ycmd::handlers {
     {
       case FileReadyToParse:
       {
-        identifier_completer.ClearForFileAndAddIdentifiersToDatabase(
+        server::identifier_completer.ClearForFileAndAddIdentifiersToDatabase(
           IdentifiersFromBuffer( file ),
           file.filetypes[ 0 ],
           request_data.filepath.string() );
@@ -164,13 +162,13 @@ namespace ycmd::handlers {
       case BufferUnload:
         break;
       case InsertLeave:
-        identifier_completer.AddSingleIdentifierToDatabase(
+        server::identifier_completer.AddSingleIdentifierToDatabase(
           IdentifierUnderCursor( request_data ),
           file.filetypes[ 0 ],
           request_data.filepath.string() );
         break;
       case CurrentIdentifierFinished:
-        identifier_completer.AddSingleIdentifierToDatabase(
+        server::identifier_completer.AddSingleIdentifierToDatabase(
           IdentifierBeforeCursor( request_data ),
           file.filetypes[ 0 ],
           request_data.filepath.string() );
@@ -189,7 +187,7 @@ namespace ycmd::handlers {
       co_return api::json_response( json::array() );
     }
 
-    auto completions = identifier_completer.CandidatesForQueryAndType(
+    auto completions = server::identifier_completer.CandidatesForQueryAndType(
           request_wrap.query(),
           request_wrap.first_filetype() );
 

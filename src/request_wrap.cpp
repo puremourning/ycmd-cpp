@@ -55,8 +55,6 @@ namespace ycmd
     } };
 
     Lazy<size_t> start_codepoint{ [this]() -> size_t {
-      // TODO: This is .. wrong and kinda messy
-      // Also line_value() is not impplementd
       auto end = column_codepoint() - 1; // 0-based index into line_value()
                                          // but points 1-past-the-end
 
