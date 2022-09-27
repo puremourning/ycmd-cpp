@@ -58,6 +58,15 @@ TEST_F(Fixture, lines_multiple)
   BuildRequest( 1,1, "tst", "test_file", "One\n" );
   ASSERT_EQ( wrap->lines().size(), 1 );
   EXPECT_EQ( wrap->lines()[ 0 ], "One" );
+  
+  // just newlines
+  BuildRequest( 1,1, "tst", "test_file", "\n\n\n\n\n" );
+  ASSERT_EQ( wrap->lines().size(), 5 );
+  EXPECT_EQ( wrap->lines()[ 0 ], "" );
+  EXPECT_EQ( wrap->lines()[ 1 ], "" );
+  EXPECT_EQ( wrap->lines()[ 2 ], "" );
+  EXPECT_EQ( wrap->lines()[ 3 ], "" );
+  EXPECT_EQ( wrap->lines()[ 4 ], "" );
 }
 
 TEST_F(Fixture, lines_single)
