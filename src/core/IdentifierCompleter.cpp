@@ -42,9 +42,9 @@ IdentifierCompleter::IdentifierCompleter(
 
 
 void IdentifierCompleter::AddSingleIdentifierToDatabase(
-  std::string& new_candidate,
-  std::string& filetype,
-  std::string& filepath ) {
+  std::string new_candidate,
+  std::string filetype,
+  std::string filepath ) {
   identifier_database_.AddSingleIdentifier( std::move( new_candidate ),
                                             std::move( filetype ),
                                             std::move( filepath ) );
@@ -71,14 +71,14 @@ void IdentifierCompleter::AddIdentifiersToDatabaseFromTagFiles(
 
 
 std::vector< std::string > IdentifierCompleter::CandidatesForQuery(
-  const std::string& query,
+  std::string_view query,
   const size_t max_candidates ) const {
   return CandidatesForQueryAndType( query, "", max_candidates );
 }
 
 
 std::vector< std::string > IdentifierCompleter::CandidatesForQueryAndType(
-  const std::string &query,
+  std::string_view query,
   const std::string &filetype,
   const size_t max_candidates ) const {
 

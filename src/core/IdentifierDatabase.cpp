@@ -111,7 +111,7 @@ void IdentifierDatabase::RecreateIdentifiers(
 
 
 std::vector< Result > IdentifierDatabase::ResultsForQueryAndType(
-  std::string query,
+  std::string_view query,
   const std::string &filetype,
   const size_t max_results ) const {
   FiletypeCandidateMap::const_iterator it;
@@ -123,7 +123,7 @@ std::vector< Result > IdentifierDatabase::ResultsForQueryAndType(
       return {};
     }
   }
-  Word query_object( std::move( query ) );
+  Word query_object( query );
 
   HashSet< const Candidate *,
            CandidateHasher,

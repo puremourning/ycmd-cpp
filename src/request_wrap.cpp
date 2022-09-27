@@ -31,35 +31,23 @@ namespace ycmd
     std::function<T()> builder;
   };
 
-  boost::regex SPLIT_LINES{ "\n" };
-
   struct RequestWrap
   {
     api::SimpleRequest req;
     json raw_req;
 
-    Lazy<std::vector<std::string>> lines{ [this]() {
-      std::vector<std::string> file_lines;
+    Lazy<std::vector<std::string_view>> lines{ [this]() {
       const auto& contents = req.file_data[ req.filepath ].contents;
-      boost::sregex_token_iterator p{ contents.begin(),
-                                      contents.end(),
-                                      SPLIT_LINES,
-                                      -1 };
-      boost::sregex_token_iterator end{};
-      while ( p != end )
-      {
-        file_lines.push_back( *p++ );
-      }
-      return file_lines;
+      return SplitLines( contents );
     } };
 
-    Lazy<std::string> line_value{ [this]() {
+    Lazy<std::string_view> line_value{ [this]() -> std::string_view {
       const auto &file_lines = lines();
       if ( req.line_num >= 1 && (size_t)req.line_num <= file_lines.size() )
       {
         return file_lines[ req.line_num -1 ];
       }
-      return std::string( "" );
+      return "";
     } };
 
     Lazy<std::string> first_filetype{ [this]() {
@@ -103,9 +91,9 @@ namespace ycmd
       return req.column_num; // TODO assumes ascii!
     } };
 
-    Lazy<std::string> query{ [this]() {
+    Lazy<std::string_view> query{ [this]() {
       return line_value().substr( start_codepoint() - 1,
-                                  column_codepoint() - start_codepoint() - 1 );
+                                  column_codepoint() - start_codepoint() );
     } };
   };
 

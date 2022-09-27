@@ -82,7 +82,7 @@ public:
                                      std::string&& filepath );
 
   std::vector< Result > ResultsForQueryAndType(
-    std::string query,
+    std::string_view query,
     const std::string &filetype,
     const size_t max_results ) const;
 

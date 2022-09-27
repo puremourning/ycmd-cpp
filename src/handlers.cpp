@@ -164,16 +164,16 @@ namespace ycmd::handlers {
       case BufferUnload:
         break;
       case InsertLeave:
-        //identifier_completer.AddSingleIdentifierToDatabase(
-        //  IdentifierUnderCursor( file ),
-        //  file.filetypes[ 0 ],
-        //  request_data.filepath.string() );
+        identifier_completer.AddSingleIdentifierToDatabase(
+          IdentifierUnderCursor( request_data ),
+          file.filetypes[ 0 ],
+          request_data.filepath.string() );
         break;
       case CurrentIdentifierFinished:
-        //identifier_completer.AddSingleIdentifierToDatabase(
-        //  IdentifierBeforeCursor( file ),
-        //  file.filetypes[ 0 ],
-        //  request_data.filepath.string() );
+        identifier_completer.AddSingleIdentifierToDatabase(
+          IdentifierBeforeCursor( request_data ),
+          file.filetypes[ 0 ],
+          request_data.filepath.string() );
         break;
       }
 

@@ -36,7 +36,7 @@ using Bitset = std::bitset< NUM_BYTES >;
 // https://www.unicode.org/reports/tr29/tr29-37.html#Grapheme_Cluster_Boundary_Rules
 class Word {
 public:
-  YCM_EXPORT explicit Word( std::string&& text );
+  YCM_EXPORT explicit Word( std::string_view text );
   // Make class noncopyable
 protected:
   Word( const Word& ) = default;

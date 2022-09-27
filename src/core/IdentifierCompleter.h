@@ -44,9 +44,9 @@ public:
                        std::string filepath );
 
   void AddSingleIdentifierToDatabase(
-    std::string& new_candidate,
-    std::string& filetype,
-    std::string& filepath );
+    std::string new_candidate,
+    std::string filetype,
+    std::string filepath );
 
   // Same as above, but clears all identifiers stored for the file before adding
   // new identifiers.
@@ -60,11 +60,11 @@ public:
 
   // Only provided for tests!
   YCM_EXPORT std::vector< std::string > CandidatesForQuery(
-    const std::string& query,
+    std::string_view query,
     const size_t max_candidates = 0 ) const;
 
   YCM_EXPORT std::vector< std::string > CandidatesForQueryAndType(
-    const std::string& query,
+    std::string_view query,
     const std::string &filetype,
     const size_t max_candidates = 0 ) const;
 
