@@ -58,3 +58,6 @@ target_link_libraries( ycmd
 )
 
 install( TARGETS ycmd DESTINATION bin )
+
+add_subdirectory( test )
+

@@ -1,7 +1,7 @@
 DEPS=.build-deps
 TARGET=Debug
 
-.PHONY: all clean distclean
+.PHONY: all clean distclean test
 
 PROFILE=default
 
@@ -23,3 +23,6 @@ distclean:
 
 clean:
 	${MAKE} -C build/${TARGET} clean
+
+test: all
+	${MAKE} -C build/${TARGET} test

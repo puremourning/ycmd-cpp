@@ -13,6 +13,8 @@ project( ycmd
   LANGUAGES CXX
 )
 
+include( CTest )
+
 # All of this project uses c++17 and we certainly don't want random extensions
 set( CMAKE_CXX_STANDARD 20 )
 set( CMAKE_CXX_EXTENSIONS OFF )

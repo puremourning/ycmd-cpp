@@ -283,7 +283,7 @@ int main( int argc, char **argv )
   if ( absl::GetFlag( FLAGS_wait_for_debugger ) ||
        getenv( "YCMD_WAIT_FOR_DEBUGGER" ) )
   {
-    std::cout << "Waitign for debugger (set should_continue=true)..."
+    std::cout << "Waiting for debugger (set should_continue=true)..."
               << std::endl;
     volatile bool should_continue = false;
     while ( !should_continue )
@@ -291,7 +291,6 @@ int main( int argc, char **argv )
       sleep( 100 );
     }
   }
-
 
   LOG(info) << "ycmd starting...";
 
