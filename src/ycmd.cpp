@@ -1,9 +1,4 @@
-#include "ycmd.h"
-#include "api.h"
-#include "server.cpp"
-#include "identifier_utils.cpp"
-#include "handlers.cpp"
-#include "request_wrap.cpp"
+// third party
 
 #include <absl/flags/internal/flag.h>
 #include <algorithm>
@@ -68,6 +63,18 @@
 #include <boost/url.hpp>
 #include <boost/url/src.hpp>
 
+// first party only below here. Note the following sequence should be used
+// everywhere
+
+#include "ycmd.h"
+#include "api.h"
+#include "identifier_utils.cpp"
+#include "request_wrap.cpp"
+
+#include "server.cpp"
+#include "handlers.cpp"
+
+// tcp server depends on handlers
 namespace ycmd::server
 {
   bool check_hmac( Request& req )

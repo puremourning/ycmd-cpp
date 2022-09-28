@@ -1,12 +1,3 @@
-#include "core/Candidate.h"
-#include "core/IdentifierCompleter.h"
-#include "core/Repository.h"
-#include "core/Result.h"
-#include "ycmd.h"
-#include "server.cpp"
-#include "identifier_utils.cpp"
-#include "api.h"
-#include "request_wrap.cpp"
 #include <boost/asio/awaitable.hpp>
 #include <boost/beast/http.hpp>
 #include <boost/beast/http/message.hpp>
@@ -33,6 +24,17 @@
 #include <utility>
 #include <vector>
 #include <algorithm>
+
+#include "core/Candidate.h"
+#include "core/IdentifierCompleter.h"
+#include "core/Repository.h"
+#include "core/Result.h"
+
+#include "ycmd.h"
+#include "api.h"
+#include "identifier_utils.cpp"
+#include "request_wrap.cpp"
+#include "server.cpp"
 
 namespace ycmd::handlers {
   namespace http = boost::beast::http;
@@ -149,7 +151,7 @@ namespace ycmd::handlers {
     {
       case FileReadyToParse:
       {
-        server::identifier_completer.ClearForFileAndAddIdentifiersToDatabase(
+        server::identifier_completer.completer.ClearForFileAndAddIdentifiersToDatabase(
           IdentifiersFromBuffer( file ),
           file.filetypes[ 0 ],
           request_data.filepath.string() );
@@ -162,13 +164,13 @@ namespace ycmd::handlers {
       case BufferUnload:
         break;
       case InsertLeave:
-        server::identifier_completer.AddSingleIdentifierToDatabase(
+        server::identifier_completer.completer.AddSingleIdentifierToDatabase(
           IdentifierUnderCursor( request_data ),
           file.filetypes[ 0 ],
           request_data.filepath.string() );
         break;
       case CurrentIdentifierFinished:
-        server::identifier_completer.AddSingleIdentifierToDatabase(
+        server::identifier_completer.completer.AddSingleIdentifierToDatabase(
           IdentifierBeforeCursor( request_data ),
           file.filetypes[ 0 ],
           request_data.filepath.string() );
@@ -187,22 +189,9 @@ namespace ycmd::handlers {
       co_return api::json_response( json::array() );
     }
 
-    auto completions = server::identifier_completer.CandidatesForQueryAndType(
-          request_wrap.query(),
-          request_wrap.first_filetype() );
+    auto candidates = server::identifier_completer.compute_candiatdes(
+      request_wrap );
 
-    std::vector<api::Candidate> candidates;
-    for ( auto& completion_sring : completions )
-    {
-      if ( completion_sring.length() >
-            server::user_options[ "min_num_identifier_candidate_chars" ] )
-      {
-        candidates.push_back( api::Candidate{
-          .insertion_text = completion_sring,
-          .extra_menu_info = "[ID]",
-        } );
-      }
-    }
     responses::CompletionsResponse response {
       .completions = std::move( candidates ),
         // TODO: switch to byte offset

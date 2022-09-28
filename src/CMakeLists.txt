@@ -9,6 +9,7 @@ set( SOURCES
   request_wrap.cpp
   server.cpp
 
+  completers/general/identifier_completer.cpp
   completers/general/filename_completer.cpp
   completers/general/ultisnips_completer.cpp
   completers/cpp/clangd_completer.cpp
@@ -30,6 +31,7 @@ set_source_files_properties(
 
 target_include_directories( ycmd
   PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/vendor/boost-url/include
 )
 

@@ -1,12 +1,8 @@
 #pragma once
 
-#include "identifier_utils.cpp"
 #include "ycmd.h"
 #include "api.h"
-#include <boost/regex/v5/regex_iterator.hpp>
-#include <boost/regex/v5/regex_token_iterator.hpp>
-#include <functional>
-#include <vector>
+#include "identifier_utils.cpp"
 
 namespace ycmd
 {

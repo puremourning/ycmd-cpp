@@ -1,8 +1,5 @@
 #pragma once
 
-#include "api.h"
-#include "ycmd.h"
-
 #include <algorithm>
 #include <boost/core/ignore_unused.hpp>
 #include <boost/regex.hpp>
@@ -17,6 +14,9 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+
+#include "ycmd.h"
+#include "api.h"
 
 namespace ycmd {
   const boost::regex DEFAULT_IDENTIFIER_REGEX{ R"([^\W\d]\w*)" };
