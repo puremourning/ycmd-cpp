@@ -1,4 +1,5 @@
 #include <boost/asio/awaitable.hpp>
+#include <boost/asio/experimental//awaitable_operators.hpp>
 #include <boost/beast/http.hpp>
 #include <boost/beast/http/message.hpp>
 #include <boost/beast/http/status.hpp>
@@ -32,12 +33,12 @@
 
 #include "ycmd.h"
 #include "api.h"
-#include "identifier_utils.cpp"
 #include "request_wrap.cpp"
 #include "server.cpp"
 
 namespace ycmd::handlers {
   namespace http = boost::beast::http;
+  using namespace boost::asio::experimental::awaitable_operators;
 
 #define HANDLER_LIST \
   HANDLER( get,  healthy ) \
@@ -144,38 +145,11 @@ namespace ycmd::handlers {
       req );
     LOG(debug) << "Event name: " << j.at( "event_name" );
 
-    const auto& file = request_data.file_data[ request_data.filepath ];
-
-    using enum requests::EventNotification::Event;
-    switch ( request_data.event_name )
-    {
-      case FileReadyToParse:
-      {
-        server::identifier_completer.completer.ClearForFileAndAddIdentifiersToDatabase(
-          IdentifiersFromBuffer( file ),
-          file.filetypes[ 0 ],
-          request_data.filepath.string() );
-        break;
-      }
-      case FileSave:
-        break;
-      case BufferVisit:
-        break;
-      case BufferUnload:
-        break;
-      case InsertLeave:
-        server::identifier_completer.completer.AddSingleIdentifierToDatabase(
-          IdentifierUnderCursor( request_data ),
-          file.filetypes[ 0 ],
-          request_data.filepath.string() );
-        break;
-      case CurrentIdentifierFinished:
-        server::identifier_completer.completer.AddSingleIdentifierToDatabase(
-          IdentifierBeforeCursor( request_data ),
-          file.filetypes[ 0 ],
-          request_data.filepath.string() );
-        break;
-      }
+    // Do these concurrently
+    co_await (
+      server::identifier_completer.handle_event_notification( request_data ) &&
+      server::filename_completer.handle_event_notification( request_data )
+    );
 
     co_return api::json_response( json::object() );
   }
@@ -183,18 +157,21 @@ namespace ycmd::handlers {
   Result handle_completions( const Request& req )
   {
     auto request_wrap = ycmd::make_request_wrap( req );
+    // FIXME: min_num_of_chars_for_completion is in characters, not bytes. The
+    // following is checking bytes.
     if ( request_wrap.query().length() <
           server::user_options[ "min_num_of_chars_for_completion" ] )
     {
       co_return api::json_response( json::array() );
     }
 
-    auto candidates = server::identifier_completer.compute_candiatdes(
+    auto candidates = co_await server::identifier_completer.compute_candiatdes(
       request_wrap );
 
     responses::CompletionsResponse response {
       .completions = std::move( candidates ),
-        // TODO: switch to byte offset
+        // FIXME: should be a byte offset (when codepoint actually is a
+        // codepoint)
       .completion_start_column = (int)request_wrap.start_codepoint()
     };
     co_return api::json_response( response );

@@ -152,9 +152,9 @@ namespace ycmd {
     return "";
   }
 
-  std::string IdentifierUnderCursor( api::SimpleRequest& request_data )
+  std::string IdentifierUnderCursor( const api::SimpleRequest& request_data )
   {
-    const auto& file = request_data.file_data[ request_data.filepath ];
+    const auto& file = request_data.file_data.at( request_data.filepath );
     // auto contents = StripCommentsIfRequired( file );
     const auto& lines = SplitLines( file.contents );
     const auto& line = lines[ request_data.line_num - 1 ];
@@ -165,9 +165,9 @@ namespace ycmd {
                               std::greater<>() );
   }
 
-  std::string IdentifierBeforeCursor( api::SimpleRequest& request_data )
+  std::string IdentifierBeforeCursor( const api::SimpleRequest& request_data )
   {
-    const auto& file = request_data.file_data[ request_data.filepath ];
+    const auto& file = request_data.file_data.at( request_data.filepath );
     // auto contents = StripCommentsIfRequired( file );
     const auto& lines = SplitLines( file.contents );
     const auto& line = lines[ request_data.line_num - 1 ];

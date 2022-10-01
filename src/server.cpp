@@ -10,7 +10,7 @@
 namespace ycmd::server
 {
   completers::general::IdentifierCompleter identifier_completer;
-  completers::general::FilenameCompleter filename_compelter;
-  completers::general::UltiSnipsCompleter ultisnips_compelter;
+  completers::general::FilenameCompleter filename_completer;
+  completers::general::UltiSnipsCompleter ultisnips_completer;
   completers::cpp::ClangdCompleter clangd_completer;
 }

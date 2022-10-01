@@ -52,6 +52,9 @@ namespace ycmd
   using Target = std::pair<http::verb,std::string_view>;
   using Handler = std::function<Result( const Request& )>;
 
+  template<typename T>
+  using Async = asio::awaitable<T>;
+
   struct ShutdownResult : std::exception {
     ShutdownResult( Response response_ )
       : response( std::move(response_) )
