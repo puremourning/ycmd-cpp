@@ -34,6 +34,11 @@ class YcmdConan(ConanFile):
   def layout(self):
     cmake_layout(self)
 
+  def configure(self):
+    # A shame, but we need its stupid regex stuff to actually work.. ?
+    self.options['boost'].i18n_backend = "icu"
+    self.options['icu'].data_packaging = 'static'
+
   def generate(self):
     CMakeToolchain(self).generate()
     CMakeDeps(self).generate()

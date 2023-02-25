@@ -49,3 +49,8 @@ add_test(
   COMMAND test_request_wrap
 )
 
+add_executable( test_regex test_regex.cpp )
+target_link_libraries( test_regex
+  PRIVATE
+    Boost::regex
+)

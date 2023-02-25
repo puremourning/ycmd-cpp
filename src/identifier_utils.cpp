@@ -3,23 +3,30 @@
 #include <algorithm>
 #include <boost/core/ignore_unused.hpp>
 #include <boost/regex.hpp>
+#include <boost/regex/icu.hpp>
+#include <boost/regex/v5/icu.hpp>
 #include <boost/regex/v5/match_flags.hpp>
 #include <boost/regex/v5/match_results.hpp>
+#include <boost/regex/v5/regex.hpp>
 #include <boost/regex/v5/regex_fwd.hpp>
 #include <boost/regex/v5/regex_iterator.hpp>
 #include <boost/regex/v5/regex_match.hpp>
 #include <boost/regex/v5/regex_search.hpp>
 
+#include <c++/v1/concepts>
 #include <functional>
+#include <iterator>
 #include <string>
 #include <string_view>
 #include <unordered_map>
 
 #include "ycmd.h"
 #include "api.h"
+#include "ztd/text.hpp"
 
 namespace ycmd {
-  const boost::regex DEFAULT_IDENTIFIER_REGEX{ R"([^\W\d]\w*)" };
+  const boost::u32regex DEFAULT_IDENTIFIER_REGEX =
+    boost::make_u32regex( R"([^\W\d]\w*)" );
 
   namespace detail {
     // this ugly boilerplate is required to make heterogenous lookup work for
@@ -38,22 +45,27 @@ namespace ycmd {
       }
     };
 
-    using svregex_iterator =
-      boost::regex_iterator<std::string_view::const_iterator>;
     using svmatch = boost::match_results<std::string_view::const_iterator>;
 
-    using svregex_token_iterator =
-      boost::regex_token_iterator<std::string_view::const_iterator>;
+    using u32svregex_iterator =
+      boost::u32regex_iterator<std::string_view::const_iterator>;
+    using u32svregex_token_iterator =
+      boost::u32regex_token_iterator<std::string_view::const_iterator>;
+
+    using u32sregex_iterator =
+      boost::u32regex_iterator<std::string::const_iterator>;
+    using u32sregex_token_iterator =
+      boost::u32regex_token_iterator<std::string::const_iterator>;
   }
 
   const std::unordered_map< std::string,
-                            boost::regex,
+                            boost::u32regex,
                             detail::string_hash,
                             std::equal_to<> > FILETYPE_TO_IDENTIFIER_REGEX {
     // TODO: There's a lot to port here from identifier_utils.py
   };
 
-  const boost::regex& IdentifierRegexForFiletype( std::string_view filetype ) {
+  const boost::u32regex& IdentifierRegexForFiletype( std::string_view filetype ) {
     if ( auto pos = FILETYPE_TO_IDENTIFIER_REGEX.find( filetype );
          pos != FILETYPE_TO_IDENTIFIER_REGEX.end() ) {
       return pos->second;
@@ -67,14 +79,14 @@ namespace ycmd {
   {
     auto identifier_regex = IdentifierRegexForFiletype( file.filetypes[ 0 ] );
 
-    boost::smatch results;
-    boost::sregex_iterator b( file.contents.begin(),
-                              file.contents.end(),
-                              identifier_regex );
-    boost::sregex_iterator e;
+    detail::u32sregex_iterator b( file.contents.begin(),
+                                  file.contents.end(),
+                                  identifier_regex );
+    detail::u32sregex_iterator e;
 
     // FIXME: sigh... more sad copying
     std::vector<std::string> candidates;
+    candidates.reserve( std::distance( b, e ) );
     std::for_each( b, e, [&]( const auto& match ) {
       candidates.push_back( match.str() );
     } );
@@ -103,16 +115,18 @@ namespace ycmd {
   }
 #endif
 
-  boost::regex SPLIT_LINES{ "\n" };
+  boost::u32regex SPLIT_LINES = boost::make_u32regex( "\n" );
 
   std::vector<std::string_view> SplitLines( std::string_view contents )
   {
       std::vector<std::string_view> file_lines;
-      detail::svregex_token_iterator p{ contents.begin(),
-                                        contents.end(),
-                                        SPLIT_LINES,
-                                        -1 };
-      detail::svregex_token_iterator end{};
+      detail::u32svregex_token_iterator p{ contents.begin(),
+                                           contents.end(),
+                                           SPLIT_LINES,
+                                           -1 };
+      detail::u32svregex_token_iterator end{};
+
+      file_lines.reserve( std::distance( p, end ) );
       while ( p != end )
       {
         const auto& match = *p;
@@ -135,9 +149,8 @@ namespace ycmd {
     }
 
     auto identifier_regex = IdentifierRegexForFiletype( filetype );
-    detail::svmatch results;
-    detail::svregex_iterator b( text.begin(), text.end(), identifier_regex );
-    detail::svregex_iterator e;
+    detail::u32svregex_iterator b( text.begin(), text.end(), identifier_regex );
+    detail::u32svregex_iterator e;
 
     for( auto it = b; it != e; ++it )
     {
@@ -180,8 +193,43 @@ namespace ycmd {
                               std::less_equal<>() );
   }
 
-  template<typename StrView>
-  bool IsIdentifier( const boost::regex& identifier_regex, StrView str ) {
-    return boost::regex_match( str.begin(), str.end(), identifier_regex );
+  template< typename CharType >
+  bool IsIdentifier( const boost::u32regex& identifier_regex,
+                     std::basic_string_view<CharType> str ) {
+    return boost::u32regex_match( str.begin(), str.end(), identifier_regex );
+  }
+
+  size_t StartOfLongestIdentifierEndingAt(
+    size_t column_codepoint,
+    const boost::u32regex& identifier_regex,
+    std::u32string_view line_value )
+  {
+    auto end = column_codepoint - 1; // 0-based index into line_value()
+                                       // but points 1-past-the-end
+
+    if ( end <= 0 )
+      return 1; // we return a 1-based offset into line_value()
+
+    // We are working here in u32 space. Therefore it's safe to use simple
+    // integer offsetting, as we're working in codepoints.
+    for ( size_t start = end - 1; ; --start )
+    {
+      if ( !IsIdentifier( identifier_regex,
+                          std::u32string_view{
+                            line_value.data() + start,
+                            end - start
+                          } ) ) {
+        return start + 2; // this is the first non-identifier character. we
+                          // start at the next character + 1 for returning
+                          // 1-based value
+      }
+
+      if ( start == 0 )
+      {
+        return 1;
+      }
+    }
+    // impossible codepath
+    abort();
   }
 }

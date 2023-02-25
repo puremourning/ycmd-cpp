@@ -37,7 +37,7 @@ namespace ycmd
     api::SimpleRequest req;
     json raw_req;
 
-    std::u16string unicode_line_value;
+    std::u32string unicode_line_value;
 
     Lazy<std::vector<std::string_view>> lines{ [this]() {
       const auto& contents = req.file_data[ req.filepath ].contents;
@@ -53,12 +53,11 @@ namespace ycmd
       return "";
     } };
 
-    Lazy<std::u16string_view> line_value{ [this]() -> std::u16string_view {
+    Lazy<std::u32string_view> line_value{ [this]() -> std::u32string_view {
       auto bytes = this->line_bytes();
-      this->unicode_line_value = ztd::text::transcode(
+      this->unicode_line_value = ztd::text::decode(
         bytes,
-        ztd::text::utf8,
-        ztd::text::utf16 );
+        ztd::text::utf8 );
 
       return this->unicode_line_value;
     } };
@@ -70,65 +69,24 @@ namespace ycmd
     size_t column_num() const { return req.column_num; }
 
     Lazy<size_t> start_column{ [this]() -> size_t {
-      auto end = column_num() - 1; // 0-based index into line_value()
-                                         // but points 1-past-the-end
-
-      if ( end <= 0 )
-        return 1; // we return a 1-based offset into line_value()
-
-      const auto& q = line_bytes();
-      // StartOfLongestIdentifierEndingAt column_codepoint()
-      const auto& identifier_regex = IdentifierRegexForFiletype(
-        first_filetype() );
-
-      for ( size_t start = end - 1; ; --start )
-      {
-        if ( !IsIdentifier( identifier_regex,
-                            std::string_view{ q.data() + start,
-                                              end - start } ) ) {
-          return start + 2; // this is the first non-identifier character. we
-                            // start at the next character + 1 for returning
-                            // 1-based value
-        }
-
-        if ( start == 0 )
-        {
-          return 1;
-        }
-      }
-      // impossible codepath
-      abort();
+      // use the unicode-safe calculation, then convert to bytes
+      // the key pointis that we can do simple integer math on u32string/_view,
+      // which is required by the faffy StartOfLongestIdentifierEndingAt
+      // calculation
+      std::u32string_view unicode_prefix = {
+        line_value().data(),
+        start_codepoint()
+      };
+      return ztd::text::count_as_encoded( unicode_prefix,
+                                          ztd::text::utf8 ).count;
     } };
 
     Lazy<size_t> start_codepoint{ [this]() -> size_t {
-      auto end = column_codepoint() - 1; // 0-based index into line_value()
-                                         // but points 1-past-the-end
-
-      if ( end <= 0 )
-        return 1; // we return a 1-based offset into line_value()
-
-      const auto& q = line_value();
-      // StartOfLongestIdentifierEndingAt column_codepoint()
       const auto& identifier_regex = IdentifierRegexForFiletype(
         first_filetype() );
-
-      for ( size_t start = end - 1; ; --start )
-      {
-        if ( !IsIdentifier( identifier_regex,
-                            std::u16string_view{ q.data() + start,
-                                                 end - start } ) ) {
-          return start + 2; // this is the first non-identifier character. we
-                            // start at the next character + 1 for returning
-                            // 1-based value
-        }
-
-        if ( start == 0 )
-        {
-          return 1;
-        }
-      }
-      // impossible codepath
-      abort();
+      return StartOfLongestIdentifierEndingAt( column_codepoint(),
+                                               identifier_regex,
+                                               line_value() );
     } };
 
     Lazy<size_t> column_codepoint{ [this]() {
@@ -136,12 +94,11 @@ namespace ycmd
       // bytes.
       std::string_view prefix_bytes = { line_bytes().data(),
                                         (size_t)req.column_num };
-      return ztd::text::count_as_transcoded( prefix_bytes,
-                                             ztd::text::utf8,
-                                             ztd::text::utf16 ).count;
+      return ztd::text::count_as_decoded( prefix_bytes,
+                                          ztd::text::utf8 ).count;
     } };
 
-    Lazy<std::u16string_view> query{ [this]() {
+    Lazy<std::u32string_view> query{ [this]() {
       return line_value().substr(
         start_codepoint() - 1,
         column_codepoint() - start_codepoint() );
