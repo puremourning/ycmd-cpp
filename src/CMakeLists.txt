@@ -35,6 +35,7 @@ target_include_directories( ycmd
     ${CMAKE_SOURCE_DIR}/vendor/boost-url/include
 )
 
+
 if ( MSVC )
   target_compile_options( ycmd
     PRIVATE
@@ -73,6 +74,7 @@ target_link_libraries( ycmd
     absl::flags
     absl::flags_parse
     nlohmann_json::nlohmann_json
+    ztd::text
 )
 
 install( TARGETS ycmd DESTINATION bin )

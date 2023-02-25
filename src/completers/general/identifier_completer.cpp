@@ -61,7 +61,7 @@ namespace ycmd::completers::general {
       const ycmd::RequestWrap& request_wrap )
     {
       auto completions = completer.CandidatesForQueryAndType(
-            request_wrap.query(),
+            request_wrap.query_bytes(), // utf-8, as required by this lib
             request_wrap.first_filetype() );
 
       std::vector<api::Candidate> candidates;

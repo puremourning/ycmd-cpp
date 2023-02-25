@@ -14,6 +14,13 @@ project( ycmd
 )
 
 include( CTest )
+include( FetchContent )
+
+FetchContent_Declare(ztd.text
+  GIT_REPOSITORY https://github.com/soasis/text.git
+  GIT_SHALLOW    ON
+  GIT_TAG        main)
+FetchContent_MakeAvailable( ztd.text )
 
 # All of this project uses c++17 and we certainly don't want random extensions
 set( CMAKE_CXX_STANDARD 20 )

@@ -41,6 +41,7 @@ target_link_libraries( test_request_wrap
     absl::flags_parse
     nlohmann_json::nlohmann_json
     gtest::gtest
+    ztd::text
 )
 
 add_test(

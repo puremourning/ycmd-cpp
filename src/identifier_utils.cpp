@@ -47,9 +47,9 @@ namespace ycmd {
   }
 
   const std::unordered_map< std::string,
-                      boost::regex,
-                      detail::string_hash,
-                      std::equal_to<> > FILETYPE_TO_IDENTIFIER_REGEX {
+                            boost::regex,
+                            detail::string_hash,
+                            std::equal_to<> > FILETYPE_TO_IDENTIFIER_REGEX {
     // TODO: There's a lot to port here from identifier_utils.py
   };
 
@@ -180,14 +180,8 @@ namespace ycmd {
                               std::less_equal<>() );
   }
 
-  bool IsIdentifier( const boost::regex& identifier_regex,
-                     std::string_view str ) {
+  template<typename StrView>
+  bool IsIdentifier( const boost::regex& identifier_regex, StrView str ) {
     return boost::regex_match( str.begin(), str.end(), identifier_regex );
   }
-
-  bool IsIdentifier( std::string_view str, std::string_view filetype ) {
-    auto identifier_regex = IdentifierRegexForFiletype( filetype );
-    return IsIdentifier( identifier_regex, str );
-  }
-
 }

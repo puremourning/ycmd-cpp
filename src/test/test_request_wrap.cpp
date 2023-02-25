@@ -60,7 +60,8 @@ TEST_F(Fixture, lines_multiple)
   EXPECT_EQ( wrap->lines()[ 1 ], "Two" );
   EXPECT_EQ( wrap->lines()[ 2 ], "Three" );
   EXPECT_EQ( wrap->lines()[ 3 ], "Four" );
-  EXPECT_EQ( wrap->line_value(), "Four" );
+  EXPECT_EQ( wrap->line_bytes(), "Four" );
+  EXPECT_EQ( wrap->line_value(), u"Four" );
 
   // newline at end
   BuildRequest( 3,1, "tst", "test_file", "One\nTwo\nThree\nFour\n" );
@@ -69,12 +70,14 @@ TEST_F(Fixture, lines_multiple)
   EXPECT_EQ( wrap->lines()[ 1 ], "Two" );
   EXPECT_EQ( wrap->lines()[ 2 ], "Three" );
   EXPECT_EQ( wrap->lines()[ 3 ], "Four" );
-  EXPECT_EQ( wrap->line_value(), "Three" );
+  EXPECT_EQ( wrap->line_bytes(), "Three" );
+  EXPECT_EQ( wrap->line_value(), u"Three" );
 
   BuildRequest( 1,1, "tst", "test_file", "One\n" );
   ASSERT_EQ( wrap->lines().size(), 1 );
   EXPECT_EQ( wrap->lines()[ 0 ], "One" );
-  EXPECT_EQ( wrap->line_value(), "One" );
+  EXPECT_EQ( wrap->line_bytes(), "One" );
+  EXPECT_EQ( wrap->line_value(), u"One" );
 
   // just newlines
   BuildRequest( 3,1, "tst", "test_file", "\n\n\n\n\n" );
@@ -84,7 +87,8 @@ TEST_F(Fixture, lines_multiple)
   EXPECT_EQ( wrap->lines()[ 2 ], "" );
   EXPECT_EQ( wrap->lines()[ 3 ], "" );
   EXPECT_EQ( wrap->lines()[ 4 ], "" );
-  EXPECT_EQ( wrap->line_value(), "" );
+  EXPECT_EQ( wrap->line_bytes(), "" );
+  EXPECT_EQ( wrap->line_value(), u"" );
 }
 
 TEST_F(Fixture, lines_single)
@@ -92,27 +96,32 @@ TEST_F(Fixture, lines_single)
   BuildRequest( 1,1, "tst", "test_file", "One");
   EXPECT_EQ( wrap->lines().size(), 1 );
   ASSERT_EQ( wrap->lines()[ 0 ], "One" );
-  EXPECT_EQ( wrap->line_value(), "One" );
+  EXPECT_EQ( wrap->line_bytes(), "One" );
+  EXPECT_EQ( wrap->line_value(), u"One" );
 
   BuildRequest( 2,1, "tst", "test_file", "One");
-  EXPECT_EQ( wrap->line_value(), "" );
+  EXPECT_EQ( wrap->line_bytes(), "" );
+  EXPECT_EQ( wrap->line_value(), u"" );
 
   BuildRequest( 1,1, "tst", "test_file", "One\r");
   ASSERT_EQ( wrap->lines().size(), 1 );
   EXPECT_EQ( wrap->lines()[ 0 ], "One\r" );
-  EXPECT_EQ( wrap->line_value(), "One\r" );
+  EXPECT_EQ( wrap->line_bytes(), "One\r" );
+  EXPECT_EQ( wrap->line_value(), u"One\r" );
 
   BuildRequest( 1,1, "tst", "test_file", "\n");
   ASSERT_EQ( wrap->lines().size(), 1 );
   EXPECT_EQ( wrap->lines()[ 0 ], "" );
-  EXPECT_EQ( wrap->line_value(), "" );
+  EXPECT_EQ( wrap->line_bytes(), "" );
+  EXPECT_EQ( wrap->line_value(), u"" );
 }
 
 TEST_F(Fixture, lines_none)
 {
   BuildRequest( 1,1, "tst", "test_file", "");
   ASSERT_EQ( wrap->lines().size(), 0 );
-  EXPECT_EQ( wrap->line_value(), "" );
+  EXPECT_EQ( wrap->line_bytes(), "" );
+  EXPECT_EQ( wrap->line_value(), u"" );
 }
 
 TEST_F(Fixture, query)
@@ -120,42 +129,51 @@ TEST_F(Fixture, query)
   BuildRequest( 1, 1, "tst", "test_file", "One\nTwo\nThree\nFour\n" );
   EXPECT_EQ( wrap->start_codepoint(), 1 );
   EXPECT_EQ( wrap->column_codepoint(), 1 );
-  EXPECT_EQ( wrap->query(), "" );
+  EXPECT_EQ( wrap->query_bytes(), "" );
+  EXPECT_EQ( wrap->query(), u"" );
 
   BuildRequest( 1, 4, "tst", "test_file", "One\nTwo\nThree\nFour\n" );
   EXPECT_EQ( wrap->start_codepoint(), 1 );
   EXPECT_EQ( wrap->column_codepoint(), 4 );
-  EXPECT_EQ( wrap->query(), "One" );
+  EXPECT_EQ( wrap->query_bytes(), "One" );
+  EXPECT_EQ( wrap->query(), u"One" );
 
   BuildRequest( 1, 8, "tst", "test_file", "One[TwoThree]Four AndFive" );
   EXPECT_EQ( wrap->start_codepoint(), 5 );
   EXPECT_EQ( wrap->column_codepoint(), 8 );
-  EXPECT_EQ( wrap->query(), "Two" );
+  EXPECT_EQ( wrap->query_bytes(), "Two" );
+  EXPECT_EQ( wrap->query(), u"Two" );
   BuildRequest( 1, 13, "tst", "test_file", "One[TwoThree]Four AndFive" );
   EXPECT_EQ( wrap->start_codepoint(), 5 );
   EXPECT_EQ( wrap->column_codepoint(), 13 );
-  EXPECT_EQ( wrap->query(), "TwoThree" );
+  EXPECT_EQ( wrap->query_bytes(), "TwoThree" );
+  EXPECT_EQ( wrap->query(), u"TwoThree" );
   BuildRequest( 1, 14, "tst", "test_file", "One[TwoThree]Four AndFive" );
   EXPECT_EQ( wrap->start_codepoint(), 14 );
   EXPECT_EQ( wrap->column_codepoint(), 14 );
-  EXPECT_EQ( wrap->query(), "" );
+  EXPECT_EQ( wrap->query_bytes(), "" );
+  EXPECT_EQ( wrap->query(), u"" );
   BuildRequest( 1, 15, "tst", "test_file", "One[TwoThree]Four AndFive" );
   EXPECT_EQ( wrap->start_codepoint(), 14 );
   EXPECT_EQ( wrap->column_codepoint(), 15 );
-  EXPECT_EQ( wrap->query(), "F" );
+  EXPECT_EQ( wrap->query_bytes(), "F" );
+  EXPECT_EQ( wrap->query(), u"F" );
 
   BuildRequest( 1, 19, "tst", "test_file", "One[TwoThree]Four AndFive" );
   EXPECT_EQ( wrap->start_codepoint(), 19 );
   EXPECT_EQ( wrap->column_codepoint(), 19 );
-  EXPECT_EQ( wrap->query(), "" );
+  EXPECT_EQ( wrap->query_bytes(), "" );
+  EXPECT_EQ( wrap->query(), u"" );
   BuildRequest( 1, 20, "tst", "test_file", "One[TwoThree]Four AndFive" );
   EXPECT_EQ( wrap->start_codepoint(), 19 );
   EXPECT_EQ( wrap->column_codepoint(), 20 );
-  EXPECT_EQ( wrap->query(), "A" );
+  EXPECT_EQ( wrap->query_bytes(), "A" );
+  EXPECT_EQ( wrap->query(), u"A" );
   BuildRequest( 1, 26, "tst", "test_file", "One[TwoThree]Four AndFive" );
   EXPECT_EQ( wrap->start_codepoint(), 19 );
   EXPECT_EQ( wrap->column_codepoint(), 26 );
-  EXPECT_EQ( wrap->query(), "AndFive" );
+  EXPECT_EQ( wrap->query_bytes(), "AndFive" );
+  EXPECT_EQ( wrap->query(), u"AndFive" );
 }
 
 TEST_F( Fixture, first_filetype )
@@ -167,6 +185,8 @@ TEST_F( Fixture, first_filetype )
   BuildRequestForTypes( 1, 26, { "toast", "c" }, "test_file", "" );
   EXPECT_EQ( wrap->first_filetype(), "toast" );
 }
+
+// TODO: test with unicode actual values
 
 int main(int argc, char** argv)
 {
