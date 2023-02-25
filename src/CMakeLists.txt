@@ -35,6 +35,10 @@ target_include_directories( ycmd
     ${CMAKE_SOURCE_DIR}/vendor/boost-url/include
 )
 
+target_compile_definitions( ycmd
+  PUBLIC
+    ZTD_TEXT_DEFAULT_HANDLER_THROWS=1
+)
 
 if ( MSVC )
   target_compile_options( ycmd
@@ -44,7 +48,11 @@ if ( MSVC )
 else()
   target_compile_options( ycmd
     PRIVATE
-      -Wall -Wextra -Werror -fvisibility=hidden
+      -Wall -Wextra -Werror -fvisibility=hidden -fexperimental-library
+  )
+  target_link_options( ycmd
+    PRIVATE
+      -fexperimental-library -fuse-ld=lld -L/opt/homebrew/opt/llvm/lib/c++
   )
   if ( ${ENABLE_ASAN} )
     target_compile_options( ycmd

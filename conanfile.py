@@ -26,6 +26,7 @@ class YcmdConan(ConanFile):
     "nlohmann_json/3.11.2",
     "abseil/20220623.0",
     "gtest/1.12.1",
+    "fmt/9.1.0",
   )
 
   def validate(self):

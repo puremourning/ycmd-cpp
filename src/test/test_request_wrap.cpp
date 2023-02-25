@@ -1,8 +1,11 @@
 #include "../request_wrap.cpp"
 
+#include <algorithm>
 #include <gtest/gtest.h>
 #include <memory>
 
+#include <fmt/format.h>
+#include <ranges>
 
 namespace
 {
@@ -14,26 +17,48 @@ namespace
     // we have to new/delete fresh ones
     std::unique_ptr<RequestWrap> wrap;
 
-
     void BuildRequestForTypes( int line_num,
                                int column_num,
                                std::vector<std::string> filetypes,
                                std::string filename,
                                std::string contents )
     {
-      // std::cout << "Req "
-      //           << filename << "@" << line_num << ":" << column_num
-      //           << "\n{" << contents << "}\n";
-      wrap.reset(new RequestWrap());
-      wrap->req.line_num = line_num;
-      wrap->req.column_num = column_num;
-      wrap->req.filepath = filename;
-      wrap->req.file_data.emplace(
-        filename,
-        api::SimpleRequest::FileData{
-          .filetypes = std::move(filetypes),
-          .contents = contents,
+      constexpr auto tmplt =  R"(
+      {{
+        "filepath": "{filename}",
+        "line_num": {line_num},
+        "column_num": {column_num},
+        "file_data": {{
+          "{filename}": {{
+            "filetypes": [ {filetypes} ],
+            "contents": "{contents}"
+          }}
+        }}
+      }}
+      )"sv;
+
+      auto ftv = filetypes | std::ranges::views::transform(
+        []( const auto& s ) {
+          std::string result = "\"";
+          result += s;
+          result += '"';
+          return result;
         } );
+
+      using namespace fmt::literals;
+      auto json_string = fmt::format(
+        tmplt,
+        "filename"_a = filename,
+        "line_num"_a = line_num,
+        "column_num"_a = column_num,
+        "filetypes"_a = fmt::join( ftv, ","sv ),
+        "contents"_a = contents );
+      auto j = json::parse( json_string );
+      auto r = j.get< api::SimpleRequest >();
+      wrap.reset( new RequestWrap{
+        .req = r,
+        .raw_req = j
+      } );
     }
 
     // TODO: Overload with a proper json version and use the parser
@@ -54,7 +79,7 @@ namespace
 
 TEST_F(Fixture, lines_multiple)
 {
-  BuildRequest( 4,1, "tst", "test_file", "One\nTwo\nThree\nFour" );
+  BuildRequest( 4,1, "tst", "test_file", "One\\nTwo\\nThree\\nFour" );
   ASSERT_EQ( wrap->lines().size(), 4 );
   EXPECT_EQ( wrap->lines()[ 0 ], "One" );
   EXPECT_EQ( wrap->lines()[ 1 ], "Two" );
@@ -64,7 +89,7 @@ TEST_F(Fixture, lines_multiple)
   EXPECT_EQ( wrap->line_value(), U"Four" );
 
   // newline at end
-  BuildRequest( 3,1, "tst", "test_file", "One\nTwo\nThree\nFour\n" );
+  BuildRequest( 3,1, "tst", "test_file", "One\\nTwo\\nThree\\nFour\\n" );
   ASSERT_EQ( wrap->lines().size(), 4 );
   EXPECT_EQ( wrap->lines()[ 0 ], "One" );
   EXPECT_EQ( wrap->lines()[ 1 ], "Two" );
@@ -73,7 +98,7 @@ TEST_F(Fixture, lines_multiple)
   EXPECT_EQ( wrap->line_bytes(), "Three" );
   EXPECT_EQ( wrap->line_value(), U"Three" );
 
-  BuildRequest( 3,1, "tst", "test_file", "óne\nTwó\nThręe\nFóur\n" );
+  BuildRequest( 3,1, "tst", "test_file", "óne\\nTwó\\nThręe\\nFóur\\n" );
   ASSERT_EQ( wrap->lines().size(), 4 );
   EXPECT_EQ( wrap->lines()[ 0 ], "óne" );
   EXPECT_EQ( wrap->lines()[ 1 ], "Twó" );
@@ -82,14 +107,14 @@ TEST_F(Fixture, lines_multiple)
   EXPECT_EQ( wrap->line_bytes(), "Thręe" );
   EXPECT_EQ( wrap->line_value(), U"Thręe" );
 
-  BuildRequest( 1,1, "tst", "test_file", "One\n" );
+  BuildRequest( 1,1, "tst", "test_file", "One\\n" );
   ASSERT_EQ( wrap->lines().size(), 1 );
   EXPECT_EQ( wrap->lines()[ 0 ], "One" );
   EXPECT_EQ( wrap->line_bytes(), "One" );
   EXPECT_EQ( wrap->line_value(), U"One" );
 
   // just newlines
-  BuildRequest( 3,1, "tst", "test_file", "\n\n\n\n\n" );
+  BuildRequest( 3,1, "tst", "test_file", "\\n\\n\\n\\n\\n" );
   ASSERT_EQ( wrap->lines().size(), 5 );
   EXPECT_EQ( wrap->lines()[ 0 ], "" );
   EXPECT_EQ( wrap->lines()[ 1 ], "" );
@@ -112,13 +137,13 @@ TEST_F(Fixture, lines_single)
   EXPECT_EQ( wrap->line_bytes(), "" );
   EXPECT_EQ( wrap->line_value(), U"" );
 
-  BuildRequest( 1,1, "tst", "test_file", "One\r");
+  BuildRequest( 1,1, "tst", "test_file", "One\\r");
   ASSERT_EQ( wrap->lines().size(), 1 );
   EXPECT_EQ( wrap->lines()[ 0 ], "One\r" );
   EXPECT_EQ( wrap->line_bytes(), "One\r" );
   EXPECT_EQ( wrap->line_value(), U"One\r" );
 
-  BuildRequest( 1,1, "tst", "test_file", "\n");
+  BuildRequest( 1,1, "tst", "test_file", "\\n");
   ASSERT_EQ( wrap->lines().size(), 1 );
   EXPECT_EQ( wrap->lines()[ 0 ], "" );
   EXPECT_EQ( wrap->line_bytes(), "" );
@@ -141,7 +166,7 @@ TEST_F(Fixture, lines_none)
 
 TEST_F(Fixture, query)
 {
-  BuildRequest( 1, 1, "tst", "test_file", "One\nTwo\nThree\nFour\n" );
+  BuildRequest( 1, 1, "tst", "test_file", "One\\nTwo\\nThree\\nFour\\n" );
   EXPECT_EQ( wrap->start_codepoint(), 1 );
   EXPECT_EQ( wrap->column_codepoint(), 1 );
   EXPECT_EQ( wrap->start_column(), 1 );
@@ -149,7 +174,7 @@ TEST_F(Fixture, query)
   EXPECT_EQ( wrap->query_bytes(), "" );
   EXPECT_EQ( wrap->query(), U"" );
 
-  BuildRequest( 1, 4, "tst", "test_file", "One\nTwo\nThree\nFour\n" );
+  BuildRequest( 1, 4, "tst", "test_file", "One\\nTwo\\nThree\\nFour\\n" );
   EXPECT_EQ( wrap->start_codepoint(), 1 );
   EXPECT_EQ( wrap->column_codepoint(), 4 );
   EXPECT_EQ( wrap->start_column(), 1 );
@@ -223,6 +248,69 @@ TEST_F(Fixture, query)
   EXPECT_EQ( wrap->column_num(), 14 );
   EXPECT_EQ( wrap->query_bytes(), "båz" );
   EXPECT_EQ( wrap->query(), U"båz" );
+}
+
+TEST_F( Fixture, copy_request_wrap )
+{
+  auto j = json::parse( R"(
+  {
+    "filepath": "/foo",
+    "line_num": 1,
+    "column_num": 1,
+    "file_data": {
+      "/foo": {
+        "filetypes": [ "test" ],
+        "contents": "føø bår"
+      }
+    }
+  }
+  )" );
+  auto r = j.get< api::SimpleRequest >();
+  RequestWrap wrap{
+    .req = r,
+    .raw_req = j
+  };
+
+  EXPECT_EQ( wrap.first_filetype(), "test" );
+  EXPECT_EQ( wrap.line_value(), U"føø bår" );
+  EXPECT_EQ( wrap.line_bytes(), "føø bår" );
+  EXPECT_EQ( wrap.start_column(), 1 );
+  EXPECT_EQ( wrap.start_codepoint(), 1 );
+  EXPECT_EQ( wrap.column_num(), 1 );
+  EXPECT_EQ( wrap.column_codepoint(), 1 );
+
+  RequestWrap another_wrap( wrap );
+
+  EXPECT_EQ( another_wrap.first_filetype(), "test" );
+  EXPECT_EQ( another_wrap.line_value(), U"føø bår" );
+  EXPECT_EQ( another_wrap.line_bytes(), "føø bår" );
+  EXPECT_EQ( another_wrap.start_column(), 1 );
+  EXPECT_EQ( another_wrap.start_codepoint(), 1 );
+  EXPECT_EQ( another_wrap.column_num(), 1 );
+  EXPECT_EQ( another_wrap.column_codepoint(), 1 );
+
+  RequestWrap a_third_wrap;
+
+  a_third_wrap = another_wrap;
+
+  EXPECT_EQ( a_third_wrap.first_filetype(), "test" );
+  EXPECT_EQ( a_third_wrap.line_value(), U"føø bår" );
+  EXPECT_EQ( a_third_wrap.line_bytes(), "føø bår" );
+  EXPECT_EQ( a_third_wrap.start_column(), 1 );
+  EXPECT_EQ( a_third_wrap.start_codepoint(), 1 );
+  EXPECT_EQ( a_third_wrap.column_num(), 1 );
+  EXPECT_EQ( a_third_wrap.column_codepoint(), 1 );
+
+  RequestWrap a_final_wrap = std::move( a_third_wrap );
+
+  EXPECT_EQ( a_final_wrap.first_filetype(), "test" );
+  EXPECT_EQ( a_final_wrap.line_value(), U"føø bår" );
+  EXPECT_EQ( a_final_wrap.line_bytes(), "føø bår" );
+  EXPECT_EQ( a_final_wrap.start_column(), 1 );
+  EXPECT_EQ( a_final_wrap.start_codepoint(), 1 );
+  EXPECT_EQ( a_final_wrap.column_num(), 1 );
+  EXPECT_EQ( a_final_wrap.column_codepoint(), 1 );
+
 }
 
 TEST_F( Fixture, first_filetype )

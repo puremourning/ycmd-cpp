@@ -12,6 +12,7 @@
 #include <boost/regex/v5/regex_iterator.hpp>
 #include <boost/regex/v5/regex_match.hpp>
 #include <boost/regex/v5/regex_search.hpp>
+#include <ztd/text.hpp>
 
 #include <c++/v1/concepts>
 #include <functional>
@@ -20,9 +21,9 @@
 #include <string_view>
 #include <unordered_map>
 
+
 #include "ycmd.h"
 #include "api.h"
-#include "ztd/text.hpp"
 
 namespace ycmd {
   const boost::u32regex DEFAULT_IDENTIFIER_REGEX =

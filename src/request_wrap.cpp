@@ -1,6 +1,5 @@
 #pragma once
 
-#include <ztd/text.hpp>
 #include "ycmd.h"
 #include "api.h"
 #include "identifier_utils.cpp"
@@ -36,7 +35,6 @@ namespace ycmd
   {
     api::SimpleRequest req;
     json raw_req;
-
     std::u32string unicode_line_value;
 
     Lazy<std::vector<std::string_view>> lines{ [this]() {

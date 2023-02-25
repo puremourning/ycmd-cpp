@@ -8,7 +8,11 @@ if ( MSVC )
 else()
   target_compile_options( test_request_wrap
     PRIVATE
-      -Wall -Wextra -Werror -fvisibility=hidden
+      -Wall -Wextra -Werror -fvisibility=hidden -fexperimental-library
+  )
+  target_link_options( test_request_wrap
+    PRIVATE
+      -fexperimental-library -fuse-ld=lld -L/opt/homebrew/opt/llvm/lib/c++
   )
   if ( ${ENABLE_ASAN} )
     target_compile_options( test_request_wrap
@@ -30,6 +34,8 @@ find_package( absl REQUIRED
 
 find_package( gtest REQUIRED )
 
+find_package( fmt REQUIRED )
+
 target_link_libraries( test_request_wrap
   PRIVATE
     YcmCore
@@ -42,6 +48,7 @@ target_link_libraries( test_request_wrap
     nlohmann_json::nlohmann_json
     gtest::gtest
     ztd::text
+    fmt::fmt
 )
 
 add_test(
