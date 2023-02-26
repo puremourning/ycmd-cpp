@@ -165,6 +165,11 @@ namespace ycmd {
     return "";
   }
 
+  // TODO/FIXME: THe following should work on RequestWrap, but currently there's
+  // a circular include dependency (as request_wrap.cpp includes this file)
+  // split out a request_wrap header. or maybe convert the whole project to
+  // modules, just for fun/learning.
+
   std::string IdentifierUnderCursor( const api::SimpleRequest& request_data )
   {
     const auto& file = request_data.file_data.at( request_data.filepath );

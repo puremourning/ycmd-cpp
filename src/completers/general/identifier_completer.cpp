@@ -65,6 +65,7 @@ namespace ycmd::completers::general {
             request_wrap.first_filetype() );
 
       std::vector<api::Candidate> candidates;
+      candidates.reserve( completions.size() );
       for ( auto& completion_sring : completions )
       {
         if ( completion_sring.length() >

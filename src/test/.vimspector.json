@@ -16,7 +16,11 @@
       ],
       "configuration": {
         "request": "launch",
-        "program": "${build_dir}/src/test/${fileBasenameNoExtension}"
+        "program": "${build_dir}/src/test/${fileBasenameNoExtension}",
+        "expressions": "native",
+        "initCommands": [
+          "script ${workspaceRoot}/../../lldb/init"
+        ]
       }
     }
   }

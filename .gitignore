@@ -7,3 +7,4 @@ compile_commands.json
 Session.vim
 .build-deps/
 build/
+CMakeUserPresets.json
