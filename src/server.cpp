@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ycmd.h"
+#include "ycmd.hpp"
 
 #include "completers/general/identifier_completer.cpp"
 #include "completers/general/filename_completer.cpp"

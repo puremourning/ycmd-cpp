@@ -1,8 +1,8 @@
 #pragma once
 
 #include <ztd/text.hpp>
-#include "ycmd.h"
-#include "api.h"
+#include "ycmd.hpp"
+#include "api.hpp"
 #include "identifier_utils.cpp"
 #include "ztd/text/count_as_encoded.hpp"
 #include "ztd/text/count_as_transcoded.hpp"

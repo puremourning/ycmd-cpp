@@ -3,8 +3,8 @@
 #include "core/IdentifierCompleter.h"
 
 #include <vector>
-#include "api.h"
-#include "ycmd.h"
+#include "api.hpp"
+#include "ycmd.hpp"
 #include "identifier_utils.cpp"
 #include "request_wrap.cpp"
 

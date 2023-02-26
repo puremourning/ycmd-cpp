@@ -1,8 +1,13 @@
 ---
 
 CompileFlags:
-  Add: [ '-Wno-deprecated-experimental-coroutine' ]
-  Remove: [ '-fsanitize=address' ]
+  Add:
+    - '-Wno-deprecated-experimental-coroutine'
+    - '-DBOOST_ASIO_HAS_CO_AWAIT' # For some reason this is not detected with
+                                  # clangd
+  Remove:
+    - '-fsanitize=address'
+    - '-Werror'
 Diagnostics:
   UnusedIncludes: None
 Hover:

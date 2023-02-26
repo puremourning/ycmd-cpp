@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ycmd.h"
+#include "ycmd.hpp"
 #include <boost/stacktrace.hpp>
 #include <boost/stacktrace/stacktrace_fwd.hpp>
 #include <filesystem>

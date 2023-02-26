@@ -1,7 +1,7 @@
 #pragma once
 
-#include "api.h"
-#include "ycmd.h"
+#include "api.hpp"
+#include "ycmd.hpp"
 
 namespace ycmd::completers::general {
   struct FilenameCompleter

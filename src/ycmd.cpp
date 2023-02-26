@@ -69,8 +69,8 @@
 // first party only below here. Note the following sequence should be used
 // everywhere
 
-#include "ycmd.h"
-#include "api.h"
+#include "ycmd.hpp"
+#include "api.hpp"
 #include "identifier_utils.cpp"
 #include "request_wrap.cpp"
 

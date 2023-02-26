@@ -1,1 +1,1 @@
-type summary add --summary-string "$var.contents (${var.filetypes})" lldb::api::SimpleRequest::FileData
+type summary add --summary-string "$var.contents (${var.filetypes})" ycmd::api::SimpleRequest::FileData

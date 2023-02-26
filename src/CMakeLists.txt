@@ -2,8 +2,8 @@ add_subdirectory( core )
 add_executable( ycmd )
 
 set( SOURCES
-  ycmd.h
-  api.h
+  ycmd.hpp
+  api.hpp
   identifier_utils.cpp
   handlers.cpp
   request_wrap.cpp

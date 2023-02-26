@@ -20,8 +20,8 @@
 #include <string_view>
 #include <unordered_map>
 
-#include "ycmd.h"
-#include "api.h"
+#include "ycmd.hpp"
+#include "api.hpp"
 #include "ztd/text.hpp"
 
 namespace ycmd {

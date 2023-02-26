@@ -69,7 +69,7 @@ namespace ycmd
   struct Shutdown: std::exception {};
 
   namespace server {
-    json user_options;
+    inline json user_options;
   }
   using namespace std::literals;
 

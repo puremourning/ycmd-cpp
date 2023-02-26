@@ -33,8 +33,8 @@
 #include "core/Repository.h"
 #include "core/Result.h"
 
-#include "ycmd.h"
-#include "api.h"
+#include "ycmd.hpp"
+#include "api.hpp"
 #include "request_wrap.cpp"
 #include "server.cpp"
 
