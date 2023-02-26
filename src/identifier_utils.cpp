@@ -136,35 +136,6 @@ namespace ycmd {
       return file_lines;
   }
 
-  template< typename TPosOperator >
-    requires std::relation< TPosOperator, size_t, size_t >
-  std::string IdentifierAtIndex( std::string_view text,
-                                 size_t index,
-                                 std::string_view filetype,
-                                 TPosOperator op )
-  {
-    if ( index > text.length() )
-    {
-      return "";
-    }
-
-    auto identifier_regex = IdentifierRegexForFiletype( filetype );
-    detail::u32svregex_iterator b( text.begin(), text.end(), identifier_regex );
-    detail::u32svregex_iterator e;
-
-    for( auto it = b; it != e; ++it )
-    {
-      const auto& match = *it;
-      size_t end = match.position() + match.length();
-      if ( op( end, index ) )
-      {
-        return match.str();
-      }
-    }
-
-    return "";
-  }
-
   // TODO/FIXME: THe following should work on RequestWrap, but currently there's
   // a circular include dependency (as request_wrap.cpp includes this file)
   // split out a request_wrap header. or maybe convert the whole project to
@@ -176,11 +147,28 @@ namespace ycmd {
     // auto contents = StripCommentsIfRequired( file );
     const auto& lines = SplitLines( file.contents );
     const auto& line = lines[ request_data.line_num - 1 ];
+    size_t index = request_data.column_num - 1;
 
-    return IdentifierAtIndex( line,
-                              request_data.column_num -1,
-                              file.filetypes[ 0 ],
-                              std::greater<>() );
+    if ( index > line.length() )
+    {
+      return "";
+    }
+
+    auto identifier_regex = IdentifierRegexForFiletype( file.filetypes[ 0 ] );
+    detail::u32svregex_iterator b( line.begin(), line.end(), identifier_regex );
+    detail::u32svregex_iterator e;
+
+    for( auto it = b; it != e; ++it )
+    {
+      const auto& match = *it;
+      size_t end = match.position() + match.length();
+      if ( end > index )
+      {
+        return match.str();
+      }
+    }
+
+    return "";
   }
 
   std::string IdentifierBeforeCursor( const api::SimpleRequest& request_data )
@@ -190,12 +178,38 @@ namespace ycmd {
     const auto& lines = SplitLines( file.contents );
     const auto& line = lines[ request_data.line_num - 1 ];
 
+    size_t index = request_data.column_num - 1;
+
+    if ( index > line.length() )
+    {
+      return "";
+    }
+
     // TODO: The real code in ycmd handles where the identifier is on the
     // previous line
-    return IdentifierAtIndex( line,
-                              request_data.column_num -1,
-                              file.filetypes[ 0 ],
-                              std::less_equal<>() );
+    auto identifier_regex = IdentifierRegexForFiletype( file.filetypes[ 0 ] );
+    detail::u32svregex_iterator b( line.begin(), line.end(), identifier_regex );
+    detail::u32svregex_iterator e;
+
+    auto best = e;
+    for( auto it = b; it != e; ++it )
+    {
+      const auto& match = *it;
+      size_t end = match.position() + match.length();
+      if ( end <= index )
+      {
+        best = it;
+      }
+      else
+      {
+        break;
+      }
+    }
+    if ( best != e )
+    {
+      return best->str();
+    }
+    return "";
   }
 
   template< typename CharType >
