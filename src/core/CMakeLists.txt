@@ -75,27 +75,7 @@ target_compile_definitions( YcmCore
     YCM_EXPORT=
 )
 
-if ( MSVC )
-  target_compile_options( YcmCore
-    PRIVATE
-      /W4 /WX
-  )
-else()
-  target_compile_options( YcmCore
-    PRIVATE
-      -Wall -Wextra -Werror -fvisibility=hidden
-  )
-  if ( ${ENABLE_ASAN} )
-    target_compile_options( YcmCore
-      PRIVATE
-       -fsanitize=address
-      )
-    target_link_options( YcmCore
-      PRIVATE
-        -fsanitize=address
-    )
-  endif()
-endif()
+ycmd_target_compiler_setup( YcmCore )
 
 target_link_libraries( YcmCore
   PUBLIC

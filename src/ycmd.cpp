@@ -49,6 +49,7 @@
 #include <limits>
 #include <optional>
 #include <ostream>
+#include <pybind11/eval.h>
 #include <string>
 #include <sys/signal.h>
 #include <system_error>
@@ -62,6 +63,8 @@
 
 #include <boost/url.hpp>
 #include <boost/url/src.hpp>
+
+#include <pybind11/embed.h>
 
 // first party only below here. Note the following sequence should be used
 // everywhere
@@ -288,8 +291,8 @@ int main( int argc, char **argv )
     return 1;
   }
 
-  if (!ycmd::server::read_options(
-      absl::GetFlag( FLAGS_options_file ).value() ))
+  if ( !ycmd::server::read_options(
+          absl::GetFlag( FLAGS_options_file ).value() ) )
   {
     return 2;
   }
@@ -308,12 +311,23 @@ int main( int argc, char **argv )
 
   LOG(info) << "ycmd starting...";
 
-  asio::io_context ctx;
-  tcp::acceptor acceptor( ctx, { tcp::v4(), absl::GetFlag( FLAGS_port ) } );
-  asio::co_spawn( ctx,
-                  ycmd::server::listen( acceptor ),
-                  ycmd::server::handle_unexpected_exception<> );
+  {
+    ycmd::py::scoped_interpreter interp{};
 
-  // TODO: spin up a handful of threads to handle stuff too
-  ctx.run();
+    // TODO: This doesn't print to stdout reopened above. Indeed if specifying
+    // --out foo, it just doesn't get printed. Which is kind of odd.
+    ycmd::py::exec( R"(
+      import sys
+      print( "YCMD PYTHON VERSION: " + sys.version )
+    )");
+
+    asio::io_context ctx;
+    tcp::acceptor acceptor( ctx, { tcp::v4(), absl::GetFlag( FLAGS_port ) } );
+    asio::co_spawn( ctx,
+                    ycmd::server::listen( acceptor ),
+                    ycmd::server::handle_unexpected_exception<> );
+
+    // TODO: spin up a handful of threads to handle stuff too
+    ctx.run();
+  }
 }

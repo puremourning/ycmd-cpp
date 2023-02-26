@@ -1,5 +1,7 @@
 #pragma once
 
+#include <pybind11/pybind11.h>
+
 #include <boost/asio/awaitable.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
@@ -70,4 +72,6 @@ namespace ycmd
     json user_options;
   }
   using namespace std::literals;
+
+  namespace py = pybind11;
 }

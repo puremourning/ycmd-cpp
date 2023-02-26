@@ -17,6 +17,8 @@
 #include <functional>
 #include <iterator>
 #include <nlohmann/json_fwd.hpp>
+#include <pybind11/eval.h>
+#include <pybind11/pybind11.h>
 #include <string>
 #include <string_view>
 #include <tuple>
@@ -145,7 +147,7 @@ namespace ycmd::handlers {
       req );
     LOG(debug) << "Event name: " << j.at( "event_name" );
 
-    // Do these concurrently
+    // Do these "concurrently"
     co_await (
       server::identifier_completer.handle_event_notification( request_data ) &&
       server::filename_completer.handle_event_notification( request_data )
@@ -157,8 +159,6 @@ namespace ycmd::handlers {
   Result handle_completions( const Request& req )
   {
     auto request_wrap = ycmd::make_request_wrap( req );
-    // FIXME: min_num_of_chars_for_completion is in characters, not bytes. The
-    // following is checking bytes.
     if ( request_wrap.query().length() <
           server::user_options[ "min_num_of_chars_for_completion" ] )
     {
@@ -170,9 +170,7 @@ namespace ycmd::handlers {
 
     responses::CompletionsResponse response {
       .completions = std::move( candidates ),
-        // FIXME: should be a byte offset (when codepoint actually is a
-        // codepoint)
-      .completion_start_column = (int)request_wrap.start_codepoint()
+      .completion_start_column = (int)request_wrap.start_column()
     };
     co_return api::json_response( response );
   }
@@ -206,7 +204,16 @@ namespace ycmd::handlers {
   {
     auto request_wrap = ycmd::make_request_wrap( req );
 
-    co_return api::json_response( responses::DebugInfoResponse{} );
+    py::module_ sys = py::module_::import( "sys" );
+
+    responses::DebugInfoResponse response{
+      .python{
+        .executable = py::str( sys.attr( "executable" ) ),
+        .version{ py::str( sys.attr( "version" ) ) }
+      }
+    };
+
+    co_return api::json_response( response );
   }
 
   Result handle_receive_messages( const Request& req )
