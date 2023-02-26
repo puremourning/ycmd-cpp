@@ -19,7 +19,7 @@
         "program": "${build_dir}/src/test/${fileBasenameNoExtension}",
         "expressions": "native",
         "initCommands": [
-          "script ${workspaceRoot}/../../lldb/init"
+          "command source ${workspaceRoot}/../../lldb/init"
         ]
       }
     }

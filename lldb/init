@@ -1,1 +1,2 @@
-type summary add --summary-string "$var.contents (${var.filetypes})" ycmd::api::SimpleRequest::FileData
+type summary add -w ycmd --summary-string "(ft: ${var.filetypes[0]}): ${var.contents}" ycmd::api::SimpleRequest::FileData
+type category enable ycmd

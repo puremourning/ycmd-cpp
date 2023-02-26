@@ -8,3 +8,4 @@ Session.vim
 .build-deps/
 build/
 CMakeUserPresets.json
+.vimspector.session
