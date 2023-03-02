@@ -20,67 +20,55 @@ namespace lsp {
     Pipe& out,
     const json& message );
 
-  template< typename id_t, typename Payload = any >
+  template< typename Payload = any >
   asio::awaitable<void> send_request(
     Pipe& out,
-    id_t&& id,
+    const lsp::ID& id,
     std::string_view method,
     Payload&& payload )
   {
-    json message( json::value_t::object );
-    message[ "jsonrpc" ] = "2.0";
-    message[ "id" ] = std::forward<id_t>( id );
-    message[ "method" ] = method;
-    message[ "params" ] = std::forward<Payload>( payload );
-
-    co_await send_message( out, message );
+    co_await send_message( out, lsp::RequestMessage<Payload>{
+      .id = id,
+      .method = std::string(method),
+      .params = std::forward<Payload>(payload),
+    } );
   }
 
-  template< typename id_t, typename Payload = any >
+  template< typename Payload = any >
   asio::awaitable<void> send_reply(
     Pipe& out,
-    id_t&& reply_to,
+    const lsp::ID& reply_to,
     Payload&& result )
   {
-    json message( json::value_t::object );
-    message[ "jsonrpc" ] = "2.0";
-    message[ "id" ] = std::forward<id_t>( reply_to );
-    message[ "result" ] = std::forward<Payload>( result );
-
-    co_await send_message( out, message );
+    co_await send_message( out, lsp::ResponseMessage<Payload>{
+      .id = reply_to,
+      .result = std::forward<Payload>(result)
+    } );
   }
 
-  template< typename id_t, typename ErrorType = any >
+  template< typename ErrorType = any >
   asio::awaitable<void> send_reject(
     Pipe& out,
-    id_t&& reply_to,
+    const lsp::ID& reply_to,
     ResponseError<ErrorType>&& result )
   {
-    json message( json::value_t::object );
-    message[ "jsonrpc" ] = "2.0";
-    message[ "id" ] = std::forward<id_t>( reply_to );
-    message[ "result" ] = std::forward<ResponseError<ErrorType>>( result );
-
-    co_await send_message( out, message );
+    co_await send_message( out, lsp::ResponseMessage<any, ErrorType>{
+      .id = reply_to,
+      .result = nullptr,
+      .error = std::forward<ResponseError<ErrorType>>(result)
+    } );
   }
 
-  template< typename id_t, typename Payload = any >
+  template< typename Payload = any >
   asio::awaitable<void> send_notification(
-    id_t&& id,
     Pipe& out,
     std::string_view method,
     Payload&& params )
   {
-    json message( json::value_t::object );
-    message[ "jsonrpc" ] = "2.0";
-    message[ "id" ] = id,
-    message[ "method" ] = method;
-    if ( params )
-    {
-      message[ "params" ] = std::forward<Payload>( params );
-    }
-
-    co_await send_message( out, message );
+    co_await send_message( out, lsp::NotificationMessage<Payload>{
+      .method = std::string(method),
+      .params = std::forward<Payload>(params)
+    } );
   }
 }
 

@@ -30,6 +30,7 @@ namespace lsp
   // common types that are repated
   using DocumentURI = string;
   using URI = string;
+  using ID = one_of<string,number>;
 
   // An optional which should be on the wire as null. Normally we don't include
   // optional values when serialising
@@ -168,7 +169,7 @@ namespace lsp
 
   struct Message
   {
-    std::string jsonrpc;
+    std::string jsonrpc{ "2.0" };
 
     NLOHMANN_DEFINE_TYPE_INTRUSIVE( Message,
                                     jsonrpc );
@@ -177,7 +178,7 @@ namespace lsp
   template< typename Payload = any >
   struct RequestMessage : Message
   {
-    string id; // TODO: I think this can also be a number
+    ID id; // TODO: I think this can also be a number
     string method;
     optional< Payload > params;
 
@@ -206,7 +207,7 @@ namespace lsp
   template< typename ResultType = any, typename ErrorType = any >
   struct ResponseMessage : Message
   {
-    string id; // TODO(Ben) when is null valid?
+    ID id;
     ResultType result;
     optional< ResponseError< ErrorType> > error;
 

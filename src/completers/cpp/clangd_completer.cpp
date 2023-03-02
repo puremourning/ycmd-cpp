@@ -25,13 +25,13 @@
 #include "lsp/lsp.hpp"
 
 namespace ycmd::completers::cpp {
-  namespace bp = boost::process;
+  namespace process = boost::process;
 
   struct ClangdCompleter
   {
-    bp::child clangd;
-    bp::async_pipe server_stdout;
-    bp::async_pipe server_stdin;
+    process::child clangd;
+    process::async_pipe server_stdout;
+    process::async_pipe server_stdin;
 
     size_t next_id = 0;
 
@@ -39,7 +39,7 @@ namespace ycmd::completers::cpp {
 
     struct PendingRequest
     {
-      std::string id;
+      lsp::ID id;
       fu2::unique_function<void(lsp::ResponseMessage<>)> handler;
     };
 
@@ -59,18 +59,18 @@ namespace ycmd::completers::cpp {
       // Launch clangd
       // Start the LSP connection on its channels
       // co_await initialize response
-      //auto clangd_path = bp::search_path( "clangd" );
+      //auto clangd_path = process::search_path( "clangd" );
       auto clangd_path = "/opt/homebrew/opt/llvm/bin/clangd"s;
       LOG(debug) << "Found clangd at: " << clangd_path;
-      clangd = bp::child( clangd_path,
-                          "-log=verbose",
-                          "-j=4",
-                          "--query-driver=/**/*",
-                          "-header-insertion-decorators=0",
-                          "-limit-results=500",
-                          bp::std_out > server_stdout,
-                          bp::std_in < server_stdin,
-                          bp::std_err > stderr );
+      clangd = process::child( clangd_path,
+                               "-log=verbose",
+                               "-j=4",
+                               "--query-driver=/**/*",
+                               "-header-insertion-decorators=0",
+                               "-limit-results=500",
+                               process::std_out > server_stdout,
+                               process::std_in < server_stdin,
+                               process::std_err > stderr );
 
 
       asio::co_spawn( co_await asio::this_coro::executor,
@@ -111,14 +111,13 @@ namespace ycmd::completers::cpp {
         ]( auto&& handler, const auto& executor )
         {
           auto& server_stdin = this->server_stdin;
-          auto id = std::to_string(next_id++);
-          pending_requests.emplace_back( PendingRequest{
-            .id = id,
+          auto& entry = pending_requests.emplace_back( PendingRequest{
+            .id = (double)next_id++,
             .handler = std::move(handler)
           });
           asio::co_spawn( executor,
                           lsp::send_request( server_stdin,
-                                             std::move(id),
+                                             entry.id,
                                              method,
                                              std::move(payload) ),
                           asio::detached );
@@ -148,10 +147,12 @@ namespace ycmd::completers::cpp {
           if (message->contains("id"))
           {
             // reverse-request
+            // TODO
           }
           else
           {
             // notification
+            // TODO
           }
         }
         else
