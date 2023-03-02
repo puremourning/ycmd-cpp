@@ -1,17 +1,26 @@
 DEPS=.build-deps
 TARGET=Debug
 
-.PHONY: all clean distclean test
+# TODO: SOmething better...
+ifeq (${TARGET},Debug)
+	PRESET=debug
+else
+	PRESET=release
+endif
+
+.PHONY: all clean distclean test conaninstall_${TARGET} cmake_${TARGET}
 
 PROFILE=default
 
-all: ${TARGET}
+all: conaninstall_${TARGET} cmake_${TARGET}
 	${DEPS}/bin/cmake --build build/${TARGET} --parallel
-	${DEPS}/bin/compdb -p build/${TARGET} list > compile_commands.json
 
-${TARGET}: ${DEPS} conanfile.py
+conaninstall_${TARGET}: ${DEPS} conanfile.py
 	${DEPS}/bin/conan install --profile=${PROFILE} -s compiler.cppstd=20 -s build_type=Debug . --build missing
-	${DEPS}/bin/conan build .
+
+cmake_${TARGET}: conaninstall_${TARGET}
+	${DEPS}/bin/cmake --preset ${PRESET}
+	${DEPS}/bin/compdb -p build/${TARGET} list > compile_commands.json
 
 ${DEPS}: dev_requirements.txt
 	python3 -m venv ${DEPS}

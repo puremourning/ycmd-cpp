@@ -322,6 +322,12 @@ int main( int argc, char **argv )
     )");
 
     asio::io_context ctx;
+    // FIXME: There _must_ be a way to get the current io_context from a
+    // coroutie via co_await this_coro::executor;
+    // NOTE: This is only required because boost::process doesn't properly
+    // support executors, rather takes a io_context by ref..
+    ycmd::server::globbal_ctx = &ctx;
+
     tcp::acceptor acceptor( ctx, { tcp::v4(), absl::GetFlag( FLAGS_port ) } );
     asio::co_spawn( ctx,
                     ycmd::server::listen( acceptor ),

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <type_traits>
 #include <ztd/text.hpp>
 #include "ycmd.hpp"
 #include "api.hpp"
@@ -32,9 +33,10 @@ namespace ycmd
     std::function<T()> builder;
   };
 
-  struct RequestWrap
+  template<typename Request = api::SimpleRequest>
+  struct RequestWrapper
   {
-    api::SimpleRequest req;
+    Request req;
     json raw_req;
 
     std::u32string unicode_line_value;
@@ -111,12 +113,17 @@ namespace ycmd
     } };
   };
 
-  RequestWrap make_request_wrap( const Request& req )
+  template<typename RequestType = api::SimpleRequest>
+    requires std::is_convertible_v< RequestType, api::SimpleRequest >
+  RequestWrapper<RequestType> make_request_wrap( const Request& req )
   {
-    auto [ r, j ] = api::json_request< api::SimpleRequest >( req );
+    auto [ r, j ] = api::json_request<RequestType>( req );
     return {
-      .req = r,
-      .raw_req = j,
+      .req = std::move( r ),
+      .raw_req = std::move( j ),
     };
   }
+
+  // Alias for simple cases
+  using RequestWrap = RequestWrapper<>;
 }

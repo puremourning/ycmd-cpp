@@ -22,11 +22,12 @@ class YcmdConan(ConanFile):
 
   # Requirements
   requires = (
-    "boost/1.81.0",
+    "boost/1.80.0", # async_read_some broken in 1.81.0
     "nlohmann_json/3.11.2",
     "abseil/20220623.0",
     "gtest/1.13.0",
-    "pybind11/2.10.3"
+    "pybind11/2.10.1",
+    "function2/4.2.2"
   )
 
   def validate(self):

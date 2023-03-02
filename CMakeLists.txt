@@ -45,6 +45,7 @@ function(ycmd_target_setup target)
   target_link_libraries( ${target}
     PRIVATE
       YcmCore
+      YcmLsp
       Boost::boost
       Boost::log
       Boost::regex
@@ -55,6 +56,7 @@ function(ycmd_target_setup target)
       ztd::text
       pybind11::pybind11
       pybind11::embed
+      function2::function2
   )
 endfunction()
 
@@ -92,6 +94,7 @@ find_package(pybind11 REQUIRED
     pybind11::pybind11
     pybind11::embed
 )
+find_package(function2 REQUIRED)
 
 # add the executable
 add_subdirectory(src)

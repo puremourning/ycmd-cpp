@@ -1,4 +1,5 @@
 add_subdirectory( core )
+add_subdirectory( lsp )
 add_executable( ycmd )
 
 set( SOURCES
@@ -40,4 +41,3 @@ ycmd_target_setup( ycmd )
 install( TARGETS ycmd DESTINATION bin )
 
 add_subdirectory( test )
-

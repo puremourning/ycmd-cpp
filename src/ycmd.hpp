@@ -15,33 +15,9 @@ namespace asio = boost::asio;
 namespace beast = boost::beast;
 namespace http = beast::http;
 
-using json = nlohmann::json;
 using tcp = asio::ip::tcp;
 
-// Support for optional<T> in json
-namespace nlohmann
-{
-  template<typename T>
-  struct adl_serializer< std::optional<T> >
-  {
-    static void to_json( json& j, const std::optional<T>& o )
-    {
-      if ( o.has_value() )
-      {
-        j = *o;
-      }
-    }
-
-    static void from_json( const json& j, std::optional<T>& o )
-    {
-      // In our definition optional<T> means may or may not be supplied. If
-      // supplied, must be one of the valid types (null is only valid where
-      // specified). Point is, that if we're going _from_ a json value, then
-      // the json value _must exist_ therefore its conversion is trivial
-      o = j.get<T>();
-    }
-  };
-}
+#include "json/json_serialisation.hpp"
 
 #define LOG BOOST_LOG_TRIVIAL
 

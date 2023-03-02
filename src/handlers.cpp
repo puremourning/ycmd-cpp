@@ -1,5 +1,8 @@
 #include <boost/asio/awaitable.hpp>
-#include <boost/asio/experimental//awaitable_operators.hpp>
+#include <boost/asio/execution_context.hpp>
+#include <boost/asio/experimental/awaitable_operators.hpp>
+#include <boost/asio/system_context.hpp>
+#include <boost/asio/this_coro.hpp>
 #include <boost/beast/http.hpp>
 #include <boost/beast/http/message.hpp>
 #include <boost/beast/http/status.hpp>
@@ -143,14 +146,27 @@ namespace ycmd::handlers {
 
   Result handle_event_notification( const Request& req )
   {
-    auto [ request_data, j ] = api::json_request<requests::EventNotification>(
-      req );
-    LOG(debug) << "Event name: " << j.at( "event_name" );
+    auto request_wrap = make_request_wrap<requests::EventNotification>(req);
+
+    LOG(debug) << "Event name: " << request_wrap.raw_req.at( "event_name" );
+
+    if ( request_wrap.first_filetype() == "cpp" )
+    {
+      if ( !server::clangd_completer.has_value() )
+      {
+        server::clangd_completer.emplace( *server::globbal_ctx );
+        co_await server::clangd_completer->init( request_wrap );
+      }
+
+      if ( server::clangd_completer->initialised )
+      {
+      }
+    }
 
     // Do these "concurrently"
     co_await (
-      server::identifier_completer.handle_event_notification( request_data ) &&
-      server::filename_completer.handle_event_notification( request_data )
+      server::identifier_completer.handle_event_notification( request_wrap.req ) &&
+      server::filename_completer.handle_event_notification( request_wrap.req )
     );
 
     co_return api::json_response( json::object() );
@@ -165,8 +181,21 @@ namespace ycmd::handlers {
       co_return api::json_response( json::array() );
     }
 
-    auto candidates = co_await server::identifier_completer.compute_candiatdes(
-      request_wrap );
+    const auto& ft = request_wrap.first_filetype();
+
+    std::vector<api::Candidate> candidates;
+
+    if ( ft == "cpp" && server::clangd_completer.has_value() )
+    {
+      candidates = co_await server::clangd_completer->compute_candiatdes(
+        request_wrap );
+    }
+    else
+    {
+      candidates = co_await server::identifier_completer.compute_candiatdes(
+        request_wrap );
+    }
+
 
     responses::CompletionsResponse response {
       .completions = std::move( candidates ),

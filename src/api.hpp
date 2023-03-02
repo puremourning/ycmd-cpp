@@ -15,12 +15,6 @@
 #include <nlohmann/json.hpp>
 #include <variant>
 
-#define NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT_AND_BASE(Type, Base, ...)  \
-     friend void to_json(nlohmann::json& nlohmann_json_j, const Type& nlohmann_json_t) { nlohmann::to_json(nlohmann_json_j, static_cast<const Base&>(nlohmann_json_t)); NLOHMANN_JSON_EXPAND(NLOHMANN_JSON_PASTE(NLOHMANN_JSON_TO, __VA_ARGS__)) } \
-     friend void from_json(const nlohmann::json& nlohmann_json_j, Type& nlohmann_json_t) { nlohmann::from_json(nlohmann_json_j, static_cast<Base&>(nlohmann_json_t)); Type nlohmann_json_default_obj; NLOHMANN_JSON_EXPAND(NLOHMANN_JSON_PASTE(NLOHMANN_JSON_FROM_WITH_DEFAULT, __VA_ARGS__)) }
-
-//#define NLOHMANN_JSON_TO(v1) nlohmann_json_j[#v1] = nlohmann_json_t.v1;
-
 namespace ycmd::api {
   using LineNum = int;
   using ColumnNum = int;
@@ -46,7 +40,7 @@ namespace ycmd::api {
 
   // we write our own field-by-field code used by the macros below. We do that
   // do change the default behaviour of std::optional to be present/not
-  // pressent, and introduce Nullable<T> as a type which expects/outputs nulls
+  // present, and introduce Nullable<T> as a type which expects/outputs nulls
 
   void to_json_optional( json& j, const char* fieldName, auto&& v )
   {
