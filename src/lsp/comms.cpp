@@ -164,9 +164,7 @@ namespace lsp
     }
   }
 
-  asio::awaitable<void> send_message(
-    Pipe& out,
-    json message )
+  asio::awaitable<void> send_message( Pipe& out, const json& message )
   {
     static asio::streambuf buf;
 

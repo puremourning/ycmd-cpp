@@ -102,8 +102,8 @@ namespace ycmd::completers::cpp {
     Async<lsp::ResponseMessage<>> get_response( std::string_view method,
                                                 Payload&& payload )
     {
-      co_return co_await asio::async_initiate<decltype(asio::use_awaitable),
-                                                    void(lsp::ResponseMessage<>)>(
+      co_return co_await asio::async_initiate< decltype(asio::use_awaitable),
+                                               void(lsp::ResponseMessage<>) >(
         [
           this,
           method,
@@ -117,25 +117,15 @@ namespace ycmd::completers::cpp {
             .handler = std::move(handler)
           });
           asio::co_spawn( executor,
-                          [
-                            &server_stdin,
-                            method,
-                            payload=std::move(payload),
-                            id=std::move(id)
-                          ]() -> Async<void>
-                          {
-                            LOG(debug) << "Sending a message " << id;
-                            co_await lsp::send_request( server_stdin,
-                                                        std::move(id),
-                                                        method,
-                                                        std::move(payload) );
-                          },
-                          asio::detached);
+                          lsp::send_request( server_stdin,
+                                             std::move(id),
+                                             method,
+                                             std::move(payload) ),
+                          asio::detached );
         },
         asio::use_awaitable,
         co_await asio::this_coro::executor
        );
-
     }
 
     Async<void> message_pump()

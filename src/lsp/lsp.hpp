@@ -18,7 +18,7 @@ namespace lsp {
 
   asio::awaitable<void> send_message(
     Pipe& out,
-    json message );
+    const json& message );
 
   template< typename id_t, typename Payload = any >
   asio::awaitable<void> send_request(
@@ -33,7 +33,7 @@ namespace lsp {
     message[ "method" ] = method;
     message[ "params" ] = std::forward<Payload>( payload );
 
-    co_await send_message( out, std::move( message ) );
+    co_await send_message( out, message );
   }
 
   template< typename id_t, typename Payload = any >
@@ -47,7 +47,7 @@ namespace lsp {
     message[ "id" ] = std::forward<id_t>( reply_to );
     message[ "result" ] = std::forward<Payload>( result );
 
-    co_await send_message( out, std::move( message ) );
+    co_await send_message( out, message );
   }
 
   template< typename id_t, typename ErrorType = any >
@@ -61,7 +61,7 @@ namespace lsp {
     message[ "id" ] = std::forward<id_t>( reply_to );
     message[ "result" ] = std::forward<ResponseError<ErrorType>>( result );
 
-    co_await send_message( out, std::move( message ) );
+    co_await send_message( out, message );
   }
 
   template< typename id_t, typename Payload = any >
@@ -80,7 +80,7 @@ namespace lsp {
       message[ "params" ] = std::forward<Payload>( params );
     }
 
-    co_await send_message( out, std::move( message ) );
+    co_await send_message( out, message );
   }
 }
 
