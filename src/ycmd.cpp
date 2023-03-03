@@ -229,6 +229,8 @@ namespace ycmd::server
       return false;
     }
 
+    LOG(info) << "Loaded options from file " << user_options;
+
     return true;
   }
 }

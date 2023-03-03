@@ -15,6 +15,7 @@
 #include <boost/process/io.hpp>
 #include <boost/process/search_path.hpp>
 #include <deque>
+#include <string_view>
 #include <vector>
 #include <function2/function2.hpp>
 #include <boost/process.hpp>
@@ -23,6 +24,7 @@
 #include "lsp/lsp_types.hpp"
 #include "request_wrap.cpp"
 #include "lsp/lsp.hpp"
+#include "ycmd.hpp"
 
 namespace ycmd::completers::cpp {
   namespace process = boost::process;
@@ -59,8 +61,26 @@ namespace ycmd::completers::cpp {
       // Launch clangd
       // Start the LSP connection on its channels
       // co_await initialize response
-      //auto clangd_path = process::search_path( "clangd" );
-      auto clangd_path = "/opt/homebrew/opt/llvm/bin/clangd"s;
+
+      boost::filesystem::path clangd_path;
+      if ( server::user_options.contains( "clangd_binary_path" ) )
+      {
+        // TODO: There must be a better way to do this without all the copying
+        // Check filesystem and json docs for good ways to work with these
+        // things
+        server::user_options[ "clangd_binary_path" ].get_to( clangd_path );
+      }
+      else
+      {
+        clangd_path = process::search_path( "clangd" );
+      }
+
+      if ( clangd_path.size() == 0 )
+      {
+        LOG(warning) << "Unable to find clangd" << std::endl;
+        co_return 0;
+      }
+
       LOG(debug) << "Found clangd at: " << clangd_path;
       clangd = process::child( clangd_path,
                                "-log=verbose",

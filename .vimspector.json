@@ -22,8 +22,7 @@
       "adapter": "CodeLLDB",
       "configuration": {
         "request": "attach",
-        "program": "${workspaceRoot}/build/Debug/src/ycmd",
-        "pid#json": "${selectProcess}"
+        "program": "${workspaceRoot}/build/Debug/src/ycmd"
       }
     }
   }
