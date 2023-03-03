@@ -269,30 +269,25 @@ int main( int argc, char **argv )
   absl::SetProgramUsageMessage("A code comprehension server");
   absl::ParseCommandLine(argc, argv);
 
-  if ( absl::GetFlag( FLAGS_out ).has_value() )
+  if ( const auto& flag = absl::GetFlag( FLAGS_out ); flag.has_value() )
   {
-    std::freopen( absl::GetFlag( FLAGS_out ).value().c_str(),
-                  "w",
-                  stdout );
+    std::freopen( flag.value().c_str(), "w", stdout );
     // TODO: check the result
   }
-  if ( absl::GetFlag( FLAGS_err ).has_value() )
+  if ( const auto& flag = absl::GetFlag( FLAGS_err ); flag.has_value() )
   {
-    std::freopen( absl::GetFlag( FLAGS_err ).value().c_str(),
-                  "w",
-                  stderr );
+    std::freopen( flag.value().c_str(), "w", stderr );
     // TODO: check the result
   }
 
-  if ( !absl::GetFlag( FLAGS_options_file ).has_value() )
+  if ( const auto& flag = absl::GetFlag( FLAGS_options_file );
+       !flag.has_value() )
   {
     // TODO: change this ? do we really need this to be mandatory
     std::cerr << "Must supply --options_file" << std::endl;
     return 1;
   }
-
-  if ( !ycmd::server::read_options(
-          absl::GetFlag( FLAGS_options_file ).value() ) )
+  else if ( !ycmd::server::read_options( flag.value() ) )
   {
     return 2;
   }
