@@ -4,6 +4,7 @@
 #include <boost/asio/posix/stream_descriptor.hpp>
 #include <boost/process/async_pipe.hpp>
 #include <nlohmann/json.hpp>
+#include <optional>
 #include <utility>
 
 #include "lsp_types.hpp"
@@ -54,7 +55,6 @@ namespace lsp {
   {
     co_await send_message( out, lsp::ResponseMessage<any, ErrorType>{
       .id = reply_to,
-      .result = nullptr,
       .error = std::forward<ResponseError<ErrorType>>(result)
     } );
   }

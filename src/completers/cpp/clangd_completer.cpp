@@ -42,7 +42,7 @@ namespace ycmd::completers::cpp {
     struct PendingRequest
     {
       lsp::ID id;
-      fu2::unique_function<void(lsp::ResponseMessage<>)> handler;
+      fu2::unique_function<void(json)> handler;
     };
 
     std::deque<PendingRequest> pending_requests;
@@ -97,54 +97,81 @@ namespace ycmd::completers::cpp {
                       message_pump(),
                       asio::detached );
 
-      auto response = co_await get_response( "initialize",
-                                             lsp::InitializeParams{
-                                               .processId { getpid() },
-                                               .rootUri{"/foo"},
-                                               .capabilities{
-                                                 .workspace{
-                                                   .applyEdit = false,
-                                                 },
-                                                 .textDocument{
-                                                   .completion{
-                                                     .snippetSupport = false,
-                                                   },
-                                                 },
-                                               }
-                                             } );
+      // TODO: I really really want to specify the payload type here. The
+      // challenge is that the PendingRequest would need to type-erase the
+      // template argument to the stored callback even further. Maybe that's
+      // possible, though i don't fully know.
+      lsp::ResponseMessage<lsp::InitializeResult> response =
+        co_await get_response<lsp::InitializeResult>(
+          "initialize",
+          lsp::InitializeParams{
+            .processId { getpid() },
+            .rootUri{"/foo"},
+            .capabilities{
+              .workspace{
+                .applyEdit = false,
+              },
+              .textDocument{
+                .completion{
+                  .snippetSupport = false,
+                },
+              },
+            }
+          } );
       LOG(debug) << "Got a freaking response to init: " << response;
+      if (response.error.has_value())
+      {
+        LOG(warning) << "clangd initialize failed: "
+                     << *response.error;
+      }
+      else if (!response.result.has_value())
+      {
+        LOG(warning) << "clangd initialize invalid: "
+                     << response;
+      }
+      else
+      {
+        LOG(trace) << "clangd got capabilities! "
+                   << response.result->capabilities;
+        initialised = true;
+      }
 
-      initialised = clangd.running();
-      co_return clangd.running();
+      co_return initialised;
     }
 
-    template<typename Payload>
-    Async<lsp::ResponseMessage<>> get_response( std::string_view method,
-                                                Payload&& payload )
+    template<typename ResultType, typename Payload>
+    Async<lsp::ResponseMessage<ResultType>> get_response(
+      std::string_view method,
+      Payload&& payload )
     {
-      co_return co_await asio::async_initiate< decltype(asio::use_awaitable),
-                                               void(lsp::ResponseMessage<>) >(
-        [
-          this,
-          method,
-          payload=std::move(payload)
-        ]( auto&& handler, const auto& executor )
-        {
-          auto& server_stdin = this->server_stdin;
-          auto& entry = pending_requests.emplace_back( PendingRequest{
-            .id = (double)next_id++,
-            .handler = std::move(handler)
-          });
-          asio::co_spawn( executor,
-                          lsp::send_request( server_stdin,
-                                             entry.id,
-                                             method,
-                                             std::move(payload) ),
-                          asio::detached );
-        },
-        asio::use_awaitable,
-        co_await asio::this_coro::executor
-       );
+      json responseMessage =
+        co_await asio::async_initiate<
+          decltype(asio::use_awaitable),
+          void(json) >(
+            [
+              this,
+              method,
+              payload=std::move(payload)
+            ]( auto&& handler, const auto& executor )
+            {
+              auto& server_stdin = this->server_stdin;
+              auto& entry = pending_requests.emplace_back( PendingRequest{
+                .id = (double)next_id++,
+                .handler = std::move(handler)
+              });
+              asio::co_spawn( executor,
+                              lsp::send_request( server_stdin,
+                                                 entry.id,
+                                                 method,
+                                                 std::move(payload) ),
+                              asio::detached );
+            },
+            asio::use_awaitable,
+            co_await asio::this_coro::executor
+          );
+
+      co_return
+        responseMessage.template get<lsp::ResponseMessage<ResultType>>();
     }
 
     Async<void> message_pump()
@@ -178,22 +205,22 @@ namespace ycmd::completers::cpp {
         else
         {
           // response
-          auto response = message->get<lsp::ResponseMessage<>>();
+          auto id = message->at("id");
           auto pos = std::find_if( pending_requests.begin(),
                                    pending_requests.end(),
                                    [&]( const auto& r ) {
-                                     return r.id == response.id;
+                                     return r.id == id;
                                    } );
           if ( pos == pending_requests.end() )
           {
-            LOG(debug) << "Unexpected response to non-message " << response;
+            LOG(debug) << "Unexpected response to non-message " << *message;
             continue;
           }
 
           auto handler = std::move(pos->handler);
           pending_requests.erase(pos);
 
-          handler( std::move(response) );
+          handler( std::move(*message) );
         }
       }
     }

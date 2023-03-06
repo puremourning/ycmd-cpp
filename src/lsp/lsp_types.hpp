@@ -208,7 +208,7 @@ namespace lsp
   struct ResponseMessage : Message
   {
     ID id;
-    ResultType result;
+    optional< ResultType > result;
     optional< ResponseError< ErrorType> > error;
 
     NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT_AND_BASE( ResponseMessage,
@@ -317,6 +317,26 @@ namespace lsp
                                     workspaceFolders,
                                     capabilities );
 
+  };
+
+  struct InitializeResult
+  {
+    json capabilities; // TODO!
+
+    struct ServerInfo
+    {
+      lsp::string name;
+      lsp::string version;
+
+      NLOHMANN_DEFINE_TYPE_INTRUSIVE(ServerInfo,
+                                     name,
+                                     version);
+    };
+    optional<ServerInfo> serverInfo;
+
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(InitializeResult,
+                                   capabilities,
+                                   serverInfo);
   };
 
   // }}}
