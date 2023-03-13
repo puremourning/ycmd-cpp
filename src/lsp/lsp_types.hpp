@@ -273,6 +273,47 @@ namespace lsp
 
   // }}}
 
+  struct TextDocumentItem
+  {
+    DocumentURI uri;
+    string languageId;
+    integer version;
+    string text;
+
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT( TextDocumentItem,
+                                                 uri,
+                                                 languageId,
+                                                 version,
+                                                 text );
+  };
+
+  struct TextDcoumentIdentifier
+  {
+    DocumentURI uri;
+
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT( TextDcoumentIdentifier,
+                                                 uri );
+  };
+  struct VersionedTextDocumentIdentifier : TextDcoumentIdentifier
+  {
+    integer version;
+
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT_AND_BASE(
+      VersionedTextDocumentIdentifier,
+      TextDcoumentIdentifier,
+      version );
+  };
+
+  struct OptionalVersionedTextDocumentIdentifier : TextDcoumentIdentifier
+  {
+    std::optional<integer> version;
+
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT_AND_BASE(
+      OptionalVersionedTextDocumentIdentifier,
+      TextDcoumentIdentifier,
+      version );
+  };
+
 }
 
 // vim: foldmethod=marker

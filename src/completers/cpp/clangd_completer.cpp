@@ -225,12 +225,26 @@ namespace ycmd::completers::cpp {
       }
     }
 
+    std::unordered_set<std::string> opened_files;
+
+    Async<void> sync_files( const ycmd::RequestWrap& request_wrap )
+    {
+
+      co_return;
+    }
+
     using Candidates = std::vector<ycmd::api::Candidate>;
     Async<Candidates> compute_candiatdes(
       const ycmd::RequestWrap& request_wrap )
     {
-      Candidates ret;
-      co_return ret;
+      if (!initialised)
+      {
+        co_return Candidates{};
+      }
+
+      co_await sync_files( request_wrap );
+
+      co_return Candidates{};
     }
   };
 }
