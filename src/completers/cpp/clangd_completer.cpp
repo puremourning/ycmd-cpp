@@ -16,6 +16,7 @@
 #include <boost/process/search_path.hpp>
 #include <deque>
 #include <string_view>
+#include <unordered_set>
 #include <vector>
 #include <function2/function2.hpp>
 #include <boost/process.hpp>
@@ -145,30 +146,29 @@ namespace ycmd::completers::cpp {
       Payload&& payload )
     {
       json responseMessage =
-        co_await asio::async_initiate<
-          decltype(asio::use_awaitable),
-          void(json) >(
-            [
-              this,
-              method,
-              payload=std::move(payload)
-            ]( auto&& handler, const auto& executor )
-            {
-              auto& server_stdin = this->server_stdin;
-              auto& entry = pending_requests.emplace_back( PendingRequest{
-                .id = (double)next_id++,
-                .handler = std::move(handler)
-              });
-              asio::co_spawn( executor,
-                              lsp::send_request( server_stdin,
-                                                 entry.id,
-                                                 method,
-                                                 std::move(payload) ),
-                              asio::detached );
-            },
-            asio::use_awaitable,
-            co_await asio::this_coro::executor
-          );
+        co_await asio::async_initiate< decltype(asio::use_awaitable),
+                                       void(json) >(
+          [
+            this,
+            method,
+            payload=std::move(payload)
+          ]( auto&& handler, const auto& executor )
+          {
+            auto& server_stdin = this->server_stdin;
+            auto& entry = pending_requests.emplace_back( PendingRequest{
+              .id = (double)next_id++,
+              .handler = std::move(handler)
+            });
+            asio::co_spawn( executor,
+                            lsp::send_request( server_stdin,
+                                               entry.id,
+                                               method,
+                                               std::move(payload) ),
+                            asio::detached );
+          },
+          asio::use_awaitable,
+          co_await asio::this_coro::executor
+        );
 
       co_return
         responseMessage.template get<lsp::ResponseMessage<ResultType>>();

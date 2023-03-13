@@ -3,6 +3,7 @@ find_package( gtest REQUIRED )
 list( APPEND YCMD_TESTS
   test_request_wrap
   test_identifier_utils
+  test_json_serialisation
 )
 
 function( add_ycmd_test test_name )

@@ -31,76 +31,8 @@ namespace lsp
   using DocumentURI = string;
   using URI = string;
   using ID = one_of<string,number>;
-
-  // An optional which should be on the wire as null. Normally we don't include
-  // optional values when serialising
-  template< typename T >
-  struct Nullable : optional< T > {};
-
-  template<typename T, typename enable = void>
-  struct is_optional : std::false_type { };
-
   template<typename T>
-  struct is_optional<optional<T>> : std::true_type { };
-
-  template<typename T>
-  struct is_optional<Nullable<T>> : std::false_type {};
-
-  static_assert( !is_optional<std::string>::value );
-  static_assert( is_optional<optional<std::string>>::value );
-  static_assert( !is_optional<Nullable<std::string>>::value );
-
-  // we write our own field-by-field code used by the macros below. We do that
-  // do change the default behaviour of optional to be present/not
-  // present, and introduce Nullable<T> as a type which expects/outputs nulls
-
-  void to_json_optional( json& j, const char* fieldName, auto&& v )
-  {
-    using T = std::remove_cvref_t<decltype( v )>;
-    if constexpr ( is_optional< T >::value )
-    {
-      if ( v.has_value() )
-      {
-        j[fieldName] = v;
-      }
-    }
-    else
-    {
-      j[fieldName] = v;
-    }
-  }
-
-  // special case for Nullable<T> - use the default behvaiour
-  template<typename T>
-  void to_json_optional( json& j, const char* fieldName, Nullable<T> v )
-  {
-    j[fieldName] = static_cast<optional<T>>(v);
-  }
-
-  void from_json_optional( const json& j, const char *fieldName, auto&& v )
-  {
-    j.at( fieldName ).get_to( v );
-  }
-
-  // special case for Nullable<T> - use the default behvaiour
-  template<typename T>
-  void from_json_optional( const json& j,
-                           const char *fieldName,
-                           Nullable< T >& v )
-  {
-    j.at( fieldName ).get_to( static_cast< optional< T >& >( v ) );
-  }
-
-#undef NLOHMANN_JSON_TO
-#define NLOHMANN_JSON_TO(v1) \
-    to_json_optional( nlohmann_json_j, #v1, nlohmann_json_t.v1 );
-
-#undef NLOHMANN_JSON_FROM
-#define NLOHMANN_JSON_FROM(v1) \
-    from_json_optional( nlohmann_json_j, #v1, nlohmann_json_t.v1 );
-
-
-  // }}}
+  using Nullable = nlohmann::Nullable<T>;
 
   // Errors {{{
 
