@@ -98,10 +98,6 @@ namespace ycmd::completers::cpp {
                       message_pump(),
                       asio::detached );
 
-      // TODO: I really really want to specify the payload type here. The
-      // challenge is that the PendingRequest would need to type-erase the
-      // template argument to the stored callback even further. Maybe that's
-      // possible, though i don't fully know.
       lsp::ResponseMessage<lsp::InitializeResult> response =
         co_await get_response<lsp::InitializeResult>(
           "initialize",
