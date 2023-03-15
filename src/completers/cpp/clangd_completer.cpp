@@ -36,7 +36,7 @@ namespace ycmd::completers::cpp {
     process::async_pipe server_stdout;
     process::async_pipe server_stdin;
 
-    size_t next_id = 0;
+    lsp::number next_id = 0;
 
     bool initialised = false;
 
@@ -152,7 +152,7 @@ namespace ycmd::completers::cpp {
           {
             auto& server_stdin = this->server_stdin;
             auto& entry = pending_requests.emplace_back( PendingRequest{
-              .id = (double)next_id++,
+              .id = next_id++,
               .handler = std::move(handler)
             });
             asio::co_spawn( executor,
