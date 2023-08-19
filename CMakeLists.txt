@@ -50,6 +50,7 @@ function(ycmd_target_setup target)
       Boost::log
       Boost::regex
       Boost::stacktrace
+      Boost::url
       absl::flags
       absl::flags_parse
       nlohmann_json::nlohmann_json

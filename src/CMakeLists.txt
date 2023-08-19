@@ -35,7 +35,6 @@ set_source_files_properties(
 target_include_directories( ycmd
   PRIVATE
     ${CMAKE_SOURCE_DIR}/src
-    ${CMAKE_SOURCE_DIR}/vendor/boost-url/include
 )
 
 target_include_directories( ycmd SYSTEM

@@ -62,7 +62,6 @@
 #include <unistd.h>
 
 #include <boost/url.hpp>
-#include <boost/url/src.hpp>
 
 #include <pybind11/embed.h>
 
