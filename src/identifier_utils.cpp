@@ -106,7 +106,7 @@ namespace ycmd {
   std::string StripCommentsIfRequired(
     const api::SimpleRequest::FileData& file )
   {
-    if ( !server::user_options[
+    if ( !server.user_options[
           "collect_identifiers_from_comments_and_strings" ] )
     {
       assert( false && "Not implemented yet" );

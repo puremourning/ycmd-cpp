@@ -331,22 +331,14 @@ int main( int argc, char **argv )
       print( "YCMD PYTHON VERSION: " + sys.version )
     )");
 
-    asio::io_context ctx;
-    // FIXME: There _must_ be a way to get the current io_context from a
-    // coroutie via co_await this_coro::executor;
-    // NOTE: This is only required because boost::process doesn't properly
-    // support executors, rather takes a io_context by ref..
-    ycmd::server::server server{
-      .globbal_ctx = &ctx,
-      .user_options = std::move(user_options.value()),
-    };
+    ycmd::server::server server{ std::move( user_options.value() ) };
 
-    tcp::acceptor acceptor( ctx, { tcp::v4(), absl::GetFlag( FLAGS_port ) } );
-    asio::co_spawn( ctx,
+    tcp::acceptor acceptor( server.ctx, { tcp::v4(), absl::GetFlag( FLAGS_port ) } );
+    asio::co_spawn( server.ctx,
                     ycmd::server::listen( server, acceptor ),
                     ycmd::server::handle_unexpected_exception<> );
 
     // TODO: spin up a handful of threads to handle stuff too
-    ctx.run();
+    server.ctx.run();
   }
 }

@@ -154,8 +154,7 @@ namespace ycmd::handlers {
     {
       if ( !server.clangd_completer.has_value() )
       {
-        server.clangd_completer.emplace( server.user_options,
-                                         *server.globbal_ctx );
+        server.clangd_completer.emplace( server.user_options, server.ctx );
         co_await server.clangd_completer->init( request_wrap );
       }
     }

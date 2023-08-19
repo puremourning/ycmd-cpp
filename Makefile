@@ -39,5 +39,5 @@ distclean:
 clean:
 	${MAKE} -C build/${TARGET} clean
 
-test: all
+test:
 	${MAKE} -C build/${TARGET} test
