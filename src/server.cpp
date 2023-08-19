@@ -8,6 +8,7 @@
 #include "completers/cpp/clangd_completer.cpp"
 #include <boost/asio/io_context.hpp>
 #include <exception>
+#include <optional>
 #include <stdexcept>
 
 namespace ycmd::server
@@ -21,31 +22,22 @@ namespace ycmd::server
     completers::general::UltiSnipsCompleter ultisnips_completer;
     std::optional<completers::cpp::ClangdCompleter> clangd_completer;
 
-    server( const json& user_options )
-      : user_options{user_options}
+    static server& get()
     {
-      if ( the_instance )
-      {
-        throw std::runtime_error( "ycmd server already initialized" );
-      }
-      the_instance = this;
+      static server instance;
+      return instance;
     }
 
-    ~server()
+    void initialize( json user_options )
     {
-      the_instance = nullptr;
-    }
-
-    static server& instance()
-    {
-      if ( !the_instance )
-      {
-        throw std::runtime_error( "ycmd server not initialized" );
-      }
-      return *the_instance;
+      this->user_options = std::move( user_options );
     }
 
   private:
-    inline static server* the_instance;
+    server() = default;
+    server( const server& ) = delete;
+    server( server&& ) = delete;
+    server& operator=( const server& ) = delete;
+    server&& operator=( server&& ) = delete;
   };
 }

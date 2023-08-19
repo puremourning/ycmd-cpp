@@ -61,7 +61,7 @@ public:
   Repository& operator=( const Repository& ) = delete;
 
   size_t NumStoredElements() const {
-    std::shared_lock locker( element_holder_mutex_ );
+    // std::shared_lock locker( element_holder_mutex_ );
     return element_holder_.size();
   }
 
@@ -71,7 +71,7 @@ public:
     auto it = element_objects.begin();
   
     {
-      std::lock_guard locker( element_holder_mutex_ );
+      //std::lock_guard locker( element_holder_mutex_ );
   
       for ( auto&& element : elements ) {
         if constexpr ( std::is_same_v< T, Candidate > ) {
@@ -106,7 +106,7 @@ private:
 
   // This data structure owns all the T pointers
   Holder element_holder_;
-  mutable std::shared_mutex element_holder_mutex_;
+  // mutable std::shared_mutex element_holder_mutex_;
 };
 
 extern template class YCM_EXPORT Repository< Candidate >;

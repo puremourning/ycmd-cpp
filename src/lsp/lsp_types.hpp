@@ -152,11 +152,16 @@ namespace lsp
 
   };
 
-  template< typename Payload = one_of< array<any>, object > >
+  template< typename Params = any >
   struct NotificationMessage : Message
   {
     string method;
-    optional< Payload > params;
+    optional< Params > params;
+
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT_AND_BASE( NotificationMessage,
+                                                          Message,
+                                                          method,
+                                                          params );
   };
 
   // }}}
@@ -347,6 +352,9 @@ namespace lsp
   struct DidCloseTextDocumentParams
   {
     TextDocumentIdentifier textDocument;
+
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE( DidCloseTextDocumentParams,
+                                    textDocument );
   };
 
   // }}}

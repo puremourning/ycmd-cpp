@@ -66,7 +66,7 @@ IdentifierDatabase::IdentifierDatabase()
 
 void IdentifierDatabase::RecreateIdentifiers(
   FiletypeIdentifierMap&& filetype_identifier_map ) {
-  std::lock_guard locker( filetype_candidate_map_mutex_ );
+  // std::lock_guard locker( filetype_candidate_map_mutex_ );
 
   for ( auto&& [ filetype, paths_to_candidates ] : filetype_identifier_map ) {
     for ( auto&& [ filepath, identifiers ] : paths_to_candidates ) {
@@ -82,7 +82,7 @@ void IdentifierDatabase::AddSingleIdentifier(
   std::string&& new_candidate,
   std::string&& filetype,
   std::string&& filepath ) {
-  std::lock_guard locker( filetype_candidate_map_mutex_ );
+  // std::lock_guard locker( filetype_candidate_map_mutex_ );
   std::vector< std::string > candidate_vector( 1 );
   auto candidate_pointer = candidate_repository_.GetElements(
          { new_candidate } )[ 0 ];
@@ -103,7 +103,7 @@ void IdentifierDatabase::RecreateIdentifiers(
   std::vector< std::string >&& new_candidates,
   std::string&& filetype,
   std::string&& filepath ) {
-  std::lock_guard locker( filetype_candidate_map_mutex_ );
+  // std::lock_guard locker( filetype_candidate_map_mutex_ );
   RecreateIdentifiersNoLock( std::move( new_candidates ),
                              std::move( filetype ),
                              std::move( filepath ) );
@@ -116,7 +116,7 @@ std::vector< Result > IdentifierDatabase::ResultsForQueryAndType(
   const size_t max_results ) const {
   FiletypeCandidateMap::const_iterator it;
   {
-    std::shared_lock locker( filetype_candidate_map_mutex_ );
+    // std::shared_lock locker( filetype_candidate_map_mutex_ );
     it = filetype_candidate_map_.find( filetype );
 
     if ( it == filetype_candidate_map_.end() ) {
@@ -132,7 +132,7 @@ std::vector< Result > IdentifierDatabase::ResultsForQueryAndType(
   std::vector< Result > results;
 
   {
-    std::lock_guard locker( filetype_candidate_map_mutex_ );
+    // std::lock_guard locker( filetype_candidate_map_mutex_ );
     auto& paths_to_candidates = it->second;
     for ( const auto& [ _, candidates ] : paths_to_candidates ) {
       for ( const Candidate& candidate : candidates ) {

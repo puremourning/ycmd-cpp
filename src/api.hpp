@@ -108,7 +108,7 @@ namespace ycmd::api {
     FileDataMap file_data;
 
     std::string completer_target;
-    std::string working_directory;
+    std::string working_dir;
     json::object_t extra_conf_data;
 
     NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(
@@ -118,7 +118,7 @@ namespace ycmd::api {
       filepath,
       file_data,
       completer_target,
-      working_directory,
+      working_dir,
       extra_conf_data);
   };
 
@@ -164,6 +164,14 @@ namespace ycmd::requests {
       candidates,
       sort_property,
       query);
+  };
+
+  struct InitializeRequest {
+    json user_options;
+
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(
+      InitializeRequest,
+      user_options);
   };
 
   struct EventNotification : SimpleRequest

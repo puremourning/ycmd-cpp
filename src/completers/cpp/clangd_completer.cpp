@@ -30,8 +30,6 @@
 #include "server.cpp"
 #include "ycmd.hpp"
 
-#include "meowhash.h"
-
 namespace ycmd::completers::cpp {
   namespace process = boost::process;
 
@@ -260,7 +258,7 @@ namespace ycmd::completers::cpp {
     struct File
     {
       lsp::integer version;
-      uint64_t hash;
+      size_t hash;
     };
 
     std::unordered_map<std::string,File> opened_files;
@@ -271,16 +269,13 @@ namespace ycmd::completers::cpp {
     {
       for ( const auto& [ filename, filedata ] : request_wrap.req.file_data )
       {
-        auto hash = MeowHash(0,
-                             filedata.contents.size(),
-                             (void*)filedata.contents.data());
-        uint64_t hash64 = MeowU64From(hash, 0);
+        auto hash = std::hash<std::string_view>{}( filedata.contents );
 
         auto pos = opened_files.find( filename );
         if ( pos == opened_files.end() )
         {
           opened_files.emplace( filename,
-                                File{ .version = 1, .hash = hash64 } );
+                                File{ .version = 1, .hash = hash } );
 
           // add file
           //
@@ -297,9 +292,9 @@ namespace ycmd::completers::cpp {
             } );
 
         }
-        else if ( pos->second.hash != hash64 )
+        else if ( pos->second.hash != hash )
         {
-          pos->second.hash = hash64;
+          pos->second.hash = hash;
           ++pos->second.version;
           // update file
           co_await lsp::send_notification(
@@ -333,13 +328,17 @@ namespace ycmd::completers::cpp {
         }
       }
 
-      opened_files.erase(
-        std::find_if(
-          opened_files.begin(),
-          opened_files.end(),
-          [&]( const auto& key ) {
-            return !request_wrap.req.file_data.contains( key.first );
-          } ) );
+      for (auto iter = opened_files.begin(); iter != opened_files.end(); )
+      {
+        if ( !request_wrap.req.file_data.contains( iter->first ) )
+        {
+          iter = opened_files.erase( iter );
+        }
+        else
+        {
+          ++iter;
+        }
+      }
 
       co_return;
     }

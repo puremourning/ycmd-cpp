@@ -331,7 +331,8 @@ int main( int argc, char **argv )
       print( "YCMD PYTHON VERSION: " + sys.version )
     )");
 
-    ycmd::server::server server{ std::move( user_options.value() ) };
+    auto& server = ycmd::server::server::get();
+    server.initialize( std::move( user_options.value() ) );
 
     tcp::acceptor acceptor( server.ctx, { tcp::v4(), absl::GetFlag( FLAGS_port ) } );
     asio::co_spawn( server.ctx,

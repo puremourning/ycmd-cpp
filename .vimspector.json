@@ -9,7 +9,7 @@
         },
         {
           "make": {
-            "shell": "cmake --build ${build_dir} --parallel=8"
+            "shell": "make build"
           }
         }
       ],
@@ -19,6 +19,9 @@
         "args": [
           "--options_file", "${workspaceRoot}/YouCompleteMe/third_party/ycmd/ycmd/default_settings.json",
           "--port", "${port:5431}"
+        ],
+        "setupCommands": [
+          "settings set target.process.thread.step-avoid-regexp ^(std::|boost::)"
         ]
       }
     },

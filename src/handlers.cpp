@@ -49,6 +49,7 @@ namespace ycmd::handlers {
   HANDLER( get,  healthy ) \
   HANDLER( get,  ready ) \
   HANDLER( post, shutdown ) \
+  HANDLER( post, initialize ) \
   HANDLER( post, completions ) \
   HANDLER( post, event_notification ) \
   HANDLER( post, run_completer_command ) \
@@ -92,6 +93,16 @@ namespace ycmd::handlers {
   {
     boost::ignore_unused( req );
     throw ShutdownResult( api::json_response( true ) );
+  }
+
+  Result handle_initialize( server::server& server, const Request& req )
+  {
+    auto [ request_data, _ ] =
+      api::json_request<requests::InitializeRequest>( req );
+
+    server.initialize( std::move( request_data.user_options ) );
+
+    co_return api::json_response(true);
   }
 
   Result handle_filter_and_sort_candidates( server::server& server, const Request& req )
@@ -157,14 +168,15 @@ namespace ycmd::handlers {
         server.clangd_completer.emplace( server.user_options, server.ctx );
         co_await server.clangd_completer->init( request_wrap );
       }
+      co_await server.clangd_completer->handle_event_notification(
+        request_wrap );
     }
 
-    // Do these "concurrently"
-    co_await (
-      server.identifier_completer.handle_event_notification( request_wrap ) &&
-      server.filename_completer.handle_event_notification( request_wrap.req ) &&
-      server.clangd_completer->handle_event_notification( request_wrap )
-    );
+    // TODO: Do these "concurrently"
+    co_await server.identifier_completer.handle_event_notification(
+      request_wrap );
+    co_await server.filename_completer.handle_event_notification(
+      request_wrap.req );
 
     co_return api::json_response( json::object() );
   }
@@ -187,7 +199,8 @@ namespace ycmd::handlers {
       candidates = co_await server.clangd_completer->compute_candiatdes(
         request_wrap );
     }
-    else
+
+    if ( candidates.size() == 0 )
     {
       candidates = co_await server.identifier_completer.compute_candiatdes(
         request_wrap );

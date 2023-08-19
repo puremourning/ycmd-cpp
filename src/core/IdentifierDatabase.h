@@ -107,7 +107,7 @@ private:
   Repository< Candidate > &candidate_repository_;
 
   FiletypeCandidateMap filetype_candidate_map_;
-  mutable std::shared_mutex filetype_candidate_map_mutex_;
+  // mutable std::shared_mutex filetype_candidate_map_mutex_;
 };
 
 } // namespace YouCompleteMe
