@@ -15,7 +15,11 @@
       ],
       "configuration": {
         "request": "launch",
-        "program": "${build_dir}/src/ycmd"
+        "program": "${build_dir}/src/ycmd",
+        "args": [
+          "--options_file", "${workspaceRoot}/YouCompleteMe/third_party/ycmd/ycmd/default_settings.json",
+          "--port", "${port:5431}"
+        ]
       }
     },
     "Attach": {

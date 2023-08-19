@@ -8,15 +8,21 @@ else
 	PRESET=release
 endif
 
-.PHONY: all clean distclean test conaninstall_${TARGET} cmake_${TARGET}
+.PHONY: all prep build clean distclean test conaninstall_${TARGET} cmake_${TARGET}
 
 PROFILE=default
 
-all: conaninstall_${TARGET} cmake_${TARGET}
-	${DEPS}/bin/cmake --build build/${TARGET} --parallel
+all: conaninstall_${TARGET} cmake_${TARGET} build
+
+prep: conaninstall_${TARGET}
+	${DEPS}/bin/conan build .
+	${DEPS}/bin/compdb -p build/${TARGET} list > compile_commands.json
+
+build:
+	cmake --build build/ --parallel 8 --preset ${PRESET}
 
 conaninstall_${TARGET}: ${DEPS} conanfile.py
-	${DEPS}/bin/conan install --profile=${PROFILE} -s compiler.cppstd=20 -s build_type=Debug . --build missing
+	${DEPS}/bin/conan install --profile=${PROFILE} -s compiler.cppstd=20 -s build_type=${TARGET} . --build missing
 
 cmake_${TARGET}: conaninstall_${TARGET}
 	${DEPS}/bin/cmake --preset ${PRESET}

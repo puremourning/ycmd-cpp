@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+exec ./build/Debug/src/ycmd \
+  --options_file ./YouCompleteMe/third_party/ycmd/ycmd/default_settings.json \
+  --port 5431
