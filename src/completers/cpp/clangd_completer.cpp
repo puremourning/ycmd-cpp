@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <boost/asio/async_result.hpp>
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/compose.hpp>
@@ -16,6 +17,7 @@
 #include <boost/process/search_path.hpp>
 #include <deque>
 #include <string_view>
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 #include <function2/function2.hpp>
@@ -26,6 +28,8 @@
 #include "request_wrap.cpp"
 #include "lsp/lsp.hpp"
 #include "ycmd.hpp"
+
+#include "meowhash.h"
 
 namespace ycmd::completers::cpp {
   namespace process = boost::process;
@@ -136,6 +140,34 @@ namespace ycmd::completers::cpp {
       co_return initialised;
     }
 
+    Async<void> handle_event_notification(
+      const RequestWrapper<requests::EventNotification>& request_data )
+    {
+      using enum requests::EventNotification::Event;
+      switch ( request_data.req.event_name )
+      {
+        case FileReadyToParse:
+        {
+          if ( initialised )
+          {
+            co_await sync_files( request_data );
+          }
+          break;
+        }
+        case FileSave:
+          break;
+        case BufferVisit:
+          break;
+        case BufferUnload:
+          break;
+        case InsertLeave:
+          break;
+        case CurrentIdentifierFinished:
+          break;
+      }
+
+      co_return;
+    }
     template<typename ResultType, typename Payload>
     Async<lsp::ResponseMessage<ResultType>> get_response(
       std::string_view method,
@@ -221,10 +253,89 @@ namespace ycmd::completers::cpp {
       }
     }
 
-    std::unordered_set<std::string> opened_files;
-
-    Async<void> sync_files( const ycmd::RequestWrap& request_wrap )
+    struct File
     {
+      lsp::integer version;
+      uint64_t hash;
+    };
+
+    std::unordered_map<std::string,File> opened_files;
+
+    template<typename SimpleRequest>
+    Async<void> sync_files(
+      const ycmd::RequestWrapper<SimpleRequest>& request_wrap )
+    {
+      for ( const auto& [ filename, filedata ] : request_wrap.req.file_data )
+      {
+        auto hash = MeowHash(0,
+                             filedata.contents.size(),
+                             (void*)filedata.contents.data());
+        uint64_t hash64 = MeowU64From(hash, 0);
+
+        auto pos = opened_files.find( filename );
+        if ( pos == opened_files.end() )
+        {
+          opened_files.emplace( filename,
+                                File{ .version = 1, .hash = hash64 } );
+
+          // add file
+          //
+          co_await lsp::send_notification(
+            server_stdin,
+            "textDocument/didOpen",
+            lsp::DidOpenTextDocumentParams {
+              .textDocument{
+                .uri = filename,
+                .languageId = filedata.filetypes[ 0 ],
+                .version = 1,
+                .text = filedata.contents,
+              }
+            } );
+
+        }
+        else if ( pos->second.hash != hash64 )
+        {
+          pos->second.hash = hash64;
+          ++pos->second.version;
+          // update file
+          co_await lsp::send_notification(
+            server_stdin,
+            "textDocument/didChange",
+            lsp::DidChangeTextDocumentParams {
+              .textDocument{
+                { filename },
+                pos->second.version
+              },
+              .contentChanges{
+                lsp::DidChangeTextDocumentParams::TextDocumentChangeEvent{
+                  .text = filedata.contents
+                }
+              }
+            } );
+        }
+      }
+
+      for( const auto& [ filename, file ] : opened_files )
+      {
+        if ( !request_wrap.req.file_data.contains( filename ) )
+        {
+          // delete
+          co_await lsp::send_notification(
+            server_stdin,
+            "textDocument/didClose",
+            lsp::DidCloseTextDocumentParams{
+              .textDocument{ filename }
+            } );
+        }
+      }
+
+      opened_files.erase(
+        std::find_if(
+          opened_files.begin(),
+          opened_files.end(),
+          [&]( const auto& key ) {
+            return !request_wrap.req.file_data.contains( key.first );
+          } ) );
 
       co_return;
     }

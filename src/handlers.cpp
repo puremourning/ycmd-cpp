@@ -157,16 +157,13 @@ namespace ycmd::handlers {
         server::clangd_completer.emplace( *server::globbal_ctx );
         co_await server::clangd_completer->init( request_wrap );
       }
-
-      if ( server::clangd_completer->initialised )
-      {
-      }
     }
 
     // Do these "concurrently"
     co_await (
-      server::identifier_completer.handle_event_notification( request_wrap.req ) &&
-      server::filename_completer.handle_event_notification( request_wrap.req )
+      server::identifier_completer.handle_event_notification( request_wrap ) &&
+      server::filename_completer.handle_event_notification( request_wrap.req ) &&
+      server::clangd_completer->handle_event_notification( request_wrap )
     );
 
     co_return api::json_response( json::object() );

@@ -10,6 +10,8 @@ set( SOURCES
   request_wrap.cpp
   server.cpp
 
+  meowhash.h
+
   completers/general/identifier_completer.cpp
   completers/general/filename_completer.cpp
   completers/general/ultisnips_completer.cpp
@@ -34,6 +36,11 @@ target_include_directories( ycmd
   PRIVATE
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/vendor/boost-url/include
+)
+
+target_include_directories( ycmd SYSTEM
+  PRIVATE
+    ${CMAKE_SOURCE_DIR}/vendor/meowhash/include
 )
 
 ycmd_target_setup( ycmd )

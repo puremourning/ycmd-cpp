@@ -42,7 +42,7 @@ namespace ycmd
     std::u32string unicode_line_value;
 
     Lazy<std::vector<std::string_view>> lines{ [this]() {
-      const auto& contents = req.file_data[ req.filepath ].contents;
+      const auto& contents = req.file_data.at( req.filepath ).contents;
       return SplitLines( contents );
     } };
 
@@ -65,7 +65,7 @@ namespace ycmd
     } };
 
     Lazy<std::string> first_filetype{ [this]() {
-      return req.file_data[ req.filepath ].filetypes[ 0 ];
+      return req.file_data.at( req.filepath ).filetypes[ 0 ];
     } };
 
     size_t column_num() const { return req.column_num; }

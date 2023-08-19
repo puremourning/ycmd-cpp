@@ -16,19 +16,20 @@ namespace ycmd::completers::general {
     YouCompleteMe::IdentifierCompleter completer;
 
     Async<void> handle_event_notification(
-      const requests::EventNotification& request_data )
+      const RequestWrapper<requests::EventNotification>& request_data )
     {
-      const auto& file = request_data.file_data.at( request_data.filepath );
+      const auto& file = request_data.req.file_data.at(
+        request_data.req.filepath );
 
       using enum requests::EventNotification::Event;
-      switch ( request_data.event_name )
+      switch ( request_data.req.event_name )
       {
         case FileReadyToParse:
         {
           completer.ClearForFileAndAddIdentifiersToDatabase(
             IdentifiersFromBuffer( file ),
             file.filetypes[ 0 ],
-            request_data.filepath.string() );
+            request_data.req.filepath.string() );
           break;
 
           // TODO: AddIdentifiersFromTagFiles
@@ -42,15 +43,15 @@ namespace ycmd::completers::general {
           break;
         case InsertLeave:
           completer.AddSingleIdentifierToDatabase(
-            IdentifierUnderCursor( request_data ),
+            IdentifierUnderCursor( request_data.req ),
             file.filetypes[ 0 ],
-            request_data.filepath.string() );
+            request_data.req.filepath.string() );
           break;
         case CurrentIdentifierFinished:
           completer.AddSingleIdentifierToDatabase(
-            IdentifierBeforeCursor( request_data ),
+            IdentifierBeforeCursor( request_data.req ),
             file.filetypes[ 0 ],
-            request_data.filepath.string() );
+            request_data.req.filepath.string() );
           break;
       }
 

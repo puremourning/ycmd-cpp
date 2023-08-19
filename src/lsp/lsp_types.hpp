@@ -33,6 +33,7 @@ namespace lsp
   using ID = one_of<string,number>;
   template<typename T>
   using Nullable = nlohmann::Nullable<T>;
+  // }}}
 
   // Errors {{{
 
@@ -273,6 +274,8 @@ namespace lsp
 
   // }}}
 
+  // Text Document Sync {{{
+
   struct TextDocumentItem
   {
     DocumentURI uri;
@@ -287,33 +290,66 @@ namespace lsp
                                                  text );
   };
 
-  struct TextDcoumentIdentifier
+  struct TextDocumentIdentifier
   {
     DocumentURI uri;
 
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT( TextDcoumentIdentifier,
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT( TextDocumentIdentifier,
                                                  uri );
   };
-  struct VersionedTextDocumentIdentifier : TextDcoumentIdentifier
+  struct VersionedTextDocumentIdentifier : TextDocumentIdentifier
   {
     integer version;
 
     NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT_AND_BASE(
       VersionedTextDocumentIdentifier,
-      TextDcoumentIdentifier,
+      TextDocumentIdentifier,
       version );
   };
 
-  struct OptionalVersionedTextDocumentIdentifier : TextDcoumentIdentifier
+  struct OptionalVersionedTextDocumentIdentifier : TextDocumentIdentifier
   {
     std::optional<integer> version;
 
     NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT_AND_BASE(
       OptionalVersionedTextDocumentIdentifier,
-      TextDcoumentIdentifier,
+      TextDocumentIdentifier,
       version );
   };
 
+  struct DidOpenTextDocumentParams
+  {
+    TextDocumentItem textDocument;
+
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE( DidOpenTextDocumentParams,
+                                    textDocument );
+  };
+
+  struct DidChangeTextDocumentParams
+  {
+    VersionedTextDocumentIdentifier textDocument;
+
+    struct TextDocumentChangeEvent
+    {
+      string text;
+
+      NLOHMANN_DEFINE_TYPE_INTRUSIVE( TextDocumentChangeEvent,
+                                      text );
+    };
+
+    std::vector<TextDocumentChangeEvent> contentChanges;
+
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE( DidChangeTextDocumentParams,
+                                    textDocument,
+                                    contentChanges );
+  };
+
+  struct DidCloseTextDocumentParams
+  {
+    TextDocumentIdentifier textDocument;
+  };
+
+  // }}}
 }
 
 // vim: foldmethod=marker
