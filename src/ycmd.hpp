@@ -23,12 +23,16 @@ using tcp = asio::ip::tcp;
 
 namespace ycmd
 {
+  namespace server {
+    struct server;
+  }
+
   using RequestParser = http::request_parser<http::string_body>;
   using Request = http::request<http::string_body>;
   using Response = http::response<http::string_body>;
   using Result = asio::awaitable<Response>;
   using Target = std::pair<http::verb,std::string_view>;
-  using Handler = std::function<Result( const Request& )>;
+  using Handler = std::function<Result( server::server&, const Request& )>;
 
   template<typename T>
   using Async = asio::awaitable<T>;

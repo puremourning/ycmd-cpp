@@ -63,7 +63,7 @@ namespace ycmd::handlers {
   HANDLER( post, inlay_hints )
 
 #define HANDLER( handler_verb, handler_name )  \
-  Result handle_##handler_name( const Request& req );
+  Result handle_##handler_name( server::server& server, const Request& req );
   HANDLER_LIST
 #undef HANDLER
 
@@ -76,25 +76,25 @@ namespace ycmd::handlers {
 #undef HANDLER
   };
 
-  Result handle_healthy( const Request& req )
+  Result handle_healthy( server::server& server, const Request& req )
   {
     boost::ignore_unused( req );
     co_return api::json_response( true );
   }
 
-  Result handle_ready( const Request& req )
+  Result handle_ready( server::server& server, const Request& req )
   {
     boost::ignore_unused( req );
     co_return api::json_response( true );
   }
 
-  Result handle_shutdown( const Request& req )
+  Result handle_shutdown( server::server& server, const Request& req )
   {
     boost::ignore_unused( req );
     throw ShutdownResult( api::json_response( true ) );
   }
 
-  Result handle_filter_and_sort_candidates( const Request& req )
+  Result handle_filter_and_sort_candidates( server::server& server, const Request& req )
   {
     auto [ request_data, _ ] =
       api::json_request<requests::FilterAndSortCandidatesRequest>( req );
@@ -144,7 +144,7 @@ namespace ycmd::handlers {
     co_return api::json_response( filtered_candidates );
   }
 
-  Result handle_event_notification( const Request& req )
+  Result handle_event_notification( server::server& server, const Request& req )
   {
     auto request_wrap = make_request_wrap<requests::EventNotification>(req);
 
@@ -152,28 +152,29 @@ namespace ycmd::handlers {
 
     if ( request_wrap.first_filetype() == "cpp" )
     {
-      if ( !server::clangd_completer.has_value() )
+      if ( !server.clangd_completer.has_value() )
       {
-        server::clangd_completer.emplace( *server::globbal_ctx );
-        co_await server::clangd_completer->init( request_wrap );
+        server.clangd_completer.emplace( server.user_options,
+                                         *server.globbal_ctx );
+        co_await server.clangd_completer->init( request_wrap );
       }
     }
 
     // Do these "concurrently"
     co_await (
-      server::identifier_completer.handle_event_notification( request_wrap ) &&
-      server::filename_completer.handle_event_notification( request_wrap.req ) &&
-      server::clangd_completer->handle_event_notification( request_wrap )
+      server.identifier_completer.handle_event_notification( request_wrap ) &&
+      server.filename_completer.handle_event_notification( request_wrap.req ) &&
+      server.clangd_completer->handle_event_notification( request_wrap )
     );
 
     co_return api::json_response( json::object() );
   }
 
-  Result handle_completions( const Request& req )
+  Result handle_completions( server::server& server, const Request& req )
   {
     auto request_wrap = ycmd::make_request_wrap( req );
     if ( request_wrap.query().length() <
-          server::user_options[ "min_num_of_chars_for_completion" ] )
+          server.user_options[ "min_num_of_chars_for_completion" ] )
     {
       co_return api::json_response( json::array() );
     }
@@ -182,14 +183,14 @@ namespace ycmd::handlers {
 
     std::vector<api::Candidate> candidates;
 
-    if ( ft == "cpp" && server::clangd_completer.has_value() )
+    if ( ft == "cpp" && server.clangd_completer.has_value() )
     {
-      candidates = co_await server::clangd_completer->compute_candiatdes(
+      candidates = co_await server.clangd_completer->compute_candiatdes(
         request_wrap );
     }
     else
     {
-      candidates = co_await server::identifier_completer.compute_candiatdes(
+      candidates = co_await server.identifier_completer.compute_candiatdes(
         request_wrap );
     }
 
@@ -201,32 +202,32 @@ namespace ycmd::handlers {
     co_return api::json_response( response );
   }
 
-  Result handle_run_completer_command( const Request& req )
+  Result handle_run_completer_command( server::server& server, const Request& req )
   {
     co_return api::json_response( nullptr );
   }
 
-  Result handle_semantic_completion_available( const Request& req )
+  Result handle_semantic_completion_available( server::server& server, const Request& req )
   {
     co_return api::json_response( false );
   }
 
-  Result handle_signature_help_available( const Request& req )
+  Result handle_signature_help_available( server::server& server, const Request& req )
   {
     co_return api::json_response( false );
   }
 
-  Result handle_defined_subcommands( const Request& req )
+  Result handle_defined_subcommands( server::server& server, const Request& req )
   {
     co_return api::json_response( json::array() );
   }
 
-  Result handle_detailed_diagnostic( const Request& req )
+  Result handle_detailed_diagnostic( server::server& server, const Request& req )
   {
     co_return api::json_response( "" );
   }
 
-  Result handle_debug_info( const Request& req )
+  Result handle_debug_info( server::server& server, const Request& req )
   {
     auto request_wrap = ycmd::make_request_wrap( req );
 
@@ -242,18 +243,18 @@ namespace ycmd::handlers {
     co_return api::json_response( response );
   }
 
-  Result handle_receive_messages( const Request& req )
+  Result handle_receive_messages( server::server& server, const Request& req )
   {
     // co_wait get_messages_for_compelter
     co_return api::json_response( false );
   }
 
-  Result handle_semantic_tokens( const Request& req )
+  Result handle_semantic_tokens( server::server& server, const Request& req )
   {
     co_return api::json_response( responses::SemanticTokensResponse{} );
   }
 
-  Result handle_inlay_hints( const Request& req )
+  Result handle_inlay_hints( server::server& server, const Request& req )
   {
     co_return api::json_response( responses::InlayHintsResponse{} );
   }

@@ -27,6 +27,7 @@
 #include "lsp/lsp_types.hpp"
 #include "request_wrap.cpp"
 #include "lsp/lsp.hpp"
+#include "server.cpp"
 #include "ycmd.hpp"
 
 #include "meowhash.h"
@@ -52,9 +53,12 @@ namespace ycmd::completers::cpp {
 
     std::deque<PendingRequest> pending_requests;
 
-    ClangdCompleter( asio::io_context& ctx )
+    const json& user_options;
+
+    ClangdCompleter( json& user_options, asio::io_context& ctx )
       : server_stdout( ctx )
       , server_stdin( ctx )
+      , user_options( user_options )
     {
     }
 
@@ -68,12 +72,12 @@ namespace ycmd::completers::cpp {
       // co_await initialize response
 
       boost::filesystem::path clangd_path;
-      if ( server::user_options.contains( "clangd_binary_path" ) )
+      if ( user_options.contains( "clangd_binary_path" ) )
       {
         // TODO: There must be a better way to do this without all the copying
         // Check filesystem and json docs for good ways to work with these
         // things
-        server::user_options[ "clangd_binary_path" ].get_to( clangd_path );
+        user_options[ "clangd_binary_path" ].get_to( clangd_path );
       }
       else
       {

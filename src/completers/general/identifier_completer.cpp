@@ -14,6 +14,11 @@ namespace ycmd::completers::general {
   struct IdentifierCompleter
   {
     YouCompleteMe::IdentifierCompleter completer;
+    const json& user_options;
+
+    IdentifierCompleter( const json& user_options )
+      : user_options( user_options )
+    {}
 
     Async<void> handle_event_notification(
       const RequestWrapper<requests::EventNotification>& request_data )
@@ -70,7 +75,7 @@ namespace ycmd::completers::general {
       for ( auto& completion_sring : completions )
       {
         if ( completion_sring.length() >
-              server::user_options[ "min_num_identifier_candidate_chars" ] )
+              user_options[ "min_num_identifier_candidate_chars" ] )
         {
           candidates.push_back( api::Candidate{
             .insertion_text = completion_sring,

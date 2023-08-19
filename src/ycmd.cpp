@@ -110,7 +110,8 @@ namespace ycmd::server
     // otherwise, ignore the result Ts...
   }
 
-  asio::awaitable<void> handle_session( tcp::acceptor& acceptor,
+  asio::awaitable<void> handle_session( ycmd::server::server& server,
+                                        tcp::acceptor& acceptor,
                                         tcp::socket socket )
   {
     auto stream = beast::tcp_stream( std::move( socket ) );
@@ -155,7 +156,7 @@ namespace ycmd::server
                   << req.target();
 
         try {
-          response = co_await handler->second( req );
+          response = co_await handler->second( server, req );
         } catch ( const ShutdownResult& s ) {
           response = std::move( s.response );
           do_shutdown = true;
@@ -196,7 +197,8 @@ namespace ycmd::server
     }
   }
 
-  asio::awaitable<void> listen( tcp::acceptor& acceptor )
+  asio::awaitable<void> listen( ycmd::server::server& server,
+                                tcp::acceptor& acceptor )
   {
     for (;;)
     {
@@ -204,6 +206,7 @@ namespace ycmd::server
         asio::co_spawn(
           acceptor.get_executor(),
           handle_session(
+            server,
             acceptor,
             co_await acceptor.async_accept( asio::use_awaitable ) ),
           handle_unexpected_exception<> );
@@ -217,20 +220,21 @@ namespace ycmd::server
     }
   }
 
-  bool read_options( std::string_view options_file_name )
+  std::optional<json> read_options( std::string_view options_file_name )
   {
     // TODO: What if this faile? Thros and exception?
     std::ifstream infile( options_file_name );
+    std::optional<json> user_options;
     try {
-      user_options = json::parse( infile );
+      user_options.emplace( json::parse( infile ) );
     } catch (const json::exception &e) {
-      LOG(info) << "Failed to parse " << options_file_name << ": " << e.what();
-      return false;
+      LOG(warning) << "Failed to parse " << options_file_name << ": " << e.what();
+      return std::nullopt;
     }
 
     LOG(info) << "Loaded options from file " << user_options;
 
-    return true;
+    return user_options;
   }
 }
 
@@ -242,7 +246,7 @@ ABSL_FLAG( std::optional<std::string>,
            options_file,
            std::nullopt, "Default options" );
 
-void crash_handler(int signum)
+static void crash_handler(int signum)
 {
   signal(signum, SIG_DFL);
   // FIXME: This is not async signal safe!
@@ -261,11 +265,19 @@ void crash_handler(int signum)
   raise(signum);
 }
 
+static void interupt_handler(int signum)
+{
+  signal(signum, SIG_DFL);
+  std::cerr << "Received signal " << strsignal(signum) << "\n";
+  raise(signum);
+}
+
 int main( int argc, char **argv )
 {
   signal( SIGABRT, &crash_handler );
   signal( SIGSEGV, &crash_handler );
   signal( SIGBUS, &crash_handler );
+  signal( SIGINT, &interupt_handler );
 
   absl::SetProgramUsageMessage("A code comprehension server");
   absl::ParseCommandLine(argc, argv);
@@ -281,6 +293,7 @@ int main( int argc, char **argv )
     // TODO: check the result
   }
 
+  std::optional<json> user_options;
   if ( const auto& flag = absl::GetFlag( FLAGS_options_file );
        !flag.has_value() )
   {
@@ -288,7 +301,8 @@ int main( int argc, char **argv )
     std::cerr << "Must supply --options_file" << std::endl;
     return 1;
   }
-  else if ( !ycmd::server::read_options( flag.value() ) )
+  else if ( user_options = ycmd::server::read_options( flag.value() );
+            !user_options.has_value() )
   {
     return 2;
   }
@@ -322,11 +336,14 @@ int main( int argc, char **argv )
     // coroutie via co_await this_coro::executor;
     // NOTE: This is only required because boost::process doesn't properly
     // support executors, rather takes a io_context by ref..
-    ycmd::server::globbal_ctx = &ctx;
+    ycmd::server::server server{
+      .globbal_ctx = &ctx,
+      .user_options = std::move(user_options.value()),
+    };
 
     tcp::acceptor acceptor( ctx, { tcp::v4(), absl::GetFlag( FLAGS_port ) } );
     asio::co_spawn( ctx,
-                    ycmd::server::listen( acceptor ),
+                    ycmd::server::listen( server, acceptor ),
                     ycmd::server::handle_unexpected_exception<> );
 
     // TODO: spin up a handful of threads to handle stuff too

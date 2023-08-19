@@ -10,10 +10,13 @@
 
 namespace ycmd::server
 {
-  asio::io_context* globbal_ctx{nullptr};
+  struct server {
+    asio::io_context* globbal_ctx{nullptr};
+    json user_options;
 
-  completers::general::IdentifierCompleter identifier_completer;
-  completers::general::FilenameCompleter filename_completer;
-  completers::general::UltiSnipsCompleter ultisnips_completer;
-  std::optional<completers::cpp::ClangdCompleter> clangd_completer;
+    completers::general::IdentifierCompleter identifier_completer{user_options};
+    completers::general::FilenameCompleter filename_completer;
+    completers::general::UltiSnipsCompleter ultisnips_completer;
+    std::optional<completers::cpp::ClangdCompleter> clangd_completer;
+  };
 }
