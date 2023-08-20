@@ -10,8 +10,6 @@ set( SOURCES
   request_wrap.cpp
   server.cpp
 
-  meowhash.h
-
   completers/general/identifier_completer.cpp
   completers/general/filename_completer.cpp
   completers/general/ultisnips_completer.cpp
@@ -35,11 +33,6 @@ set_source_files_properties(
 target_include_directories( ycmd
   PRIVATE
     ${CMAKE_SOURCE_DIR}/src
-)
-
-target_include_directories( ycmd SYSTEM
-  PRIVATE
-    ${CMAKE_SOURCE_DIR}/vendor/meowhash/include
 )
 
 ycmd_target_setup( ycmd )

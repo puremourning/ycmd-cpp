@@ -34,6 +34,8 @@
 #include "util.hpp"
 #include "ycmd.hpp"
 
+#include <xxhash.h>
+
 namespace ycmd::completers::cpp {
   namespace process = boost::process;
 
@@ -272,7 +274,7 @@ namespace ycmd::completers::cpp {
     struct File
     {
       lsp::integer version;
-      size_t hash;
+      uint64_t hash;
     };
 
     std::unordered_map<std::string,File> opened_files;
@@ -283,7 +285,9 @@ namespace ycmd::completers::cpp {
     {
       for ( const auto& [ filename, filedata ] : request_wrap.req.file_data )
       {
-        auto hash = std::hash<std::string_view>{}( filedata.contents );
+        auto hash = XXH64( filedata.contents.data(),
+                           filedata.contents.size(),
+                           0 );
 
         auto pos = opened_files.find( filename );
         if ( pos == opened_files.end() )
@@ -328,8 +332,9 @@ namespace ycmd::completers::cpp {
         }
       }
 
-      for( const auto& [ filename, file ] : opened_files )
+      for (auto iter = opened_files.begin(); iter != opened_files.end(); )
       {
+        const auto& filename = iter->first;
         if ( !request_wrap.req.file_data.contains( filename ) )
         {
           // delete
@@ -339,13 +344,6 @@ namespace ycmd::completers::cpp {
             lsp::DidCloseTextDocumentParams{
               .textDocument{ filename }
             } );
-        }
-      }
-
-      for (auto iter = opened_files.begin(); iter != opened_files.end(); )
-      {
-        if ( !request_wrap.req.file_data.contains( iter->first ) )
-        {
           iter = opened_files.erase( iter );
         }
         else

@@ -28,6 +28,7 @@ class YcmdConan(ConanFile):
     "gtest/1.13.0",
     "pybind11/2.10.1",
     "function2/4.2.2"
+    "xxhash/0.8.2",
   )
 
   def validate(self):

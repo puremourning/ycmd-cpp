@@ -58,6 +58,7 @@ function(ycmd_target_setup target)
       pybind11::pybind11
       pybind11::embed
       function2::function2
+      xxHash::xxhash
   )
 endfunction()
 
@@ -96,6 +97,7 @@ find_package(pybind11 REQUIRED
     pybind11::embed
 )
 find_package(function2 REQUIRED)
+find_package(xxHash REQUIRED)
 
 # add the executable
 add_subdirectory(src)
