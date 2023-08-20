@@ -184,7 +184,11 @@ namespace ycmd::handlers {
   Result handle_completions( server::server& server, const Request& req )
   {
     auto request_wrap = ycmd::make_request_wrap( req );
-    if ( request_wrap.query().length() <
+    bool force_semantic = request_wrap.raw_req.contains( "force_semantic" ) &&
+      request_wrap.raw_req.at( "force_semantic" ).get<bool>();
+
+    if ( !force_semantic &&
+         request_wrap.query().length() <
           server.user_options[ "min_num_of_chars_for_completion" ] )
     {
       co_return api::json_response( json::array() );
@@ -200,7 +204,7 @@ namespace ycmd::handlers {
         request_wrap );
     }
 
-    if ( candidates.size() == 0 )
+    if ( !force_semantic && candidates.size() == 0 )
     {
       candidates = co_await server.identifier_completer.compute_candiatdes(
         request_wrap );

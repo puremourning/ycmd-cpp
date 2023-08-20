@@ -1,9 +1,11 @@
 #pragma once
 
+#include <boost/utility/identity_type.hpp>
 #include <nlohmann/json.hpp>
 #include <nlohmann/json_fwd.hpp>
 #include <optional>
 #include <type_traits>
+#include <boost/log/trivial.hpp>
 
 using json = nlohmann::json;
 
@@ -48,7 +50,11 @@ namespace
   {
     try {
       data = j.get<T>();
-    } catch (...) {
+    } catch (const json::exception& e) {
+      BOOST_LOG_TRIVIAL(debug) << "Ignoring alternative: "
+                               << __PRETTY_FUNCTION__
+                               << "\n  Because: "
+                               << e.what();
     }
   }
 }

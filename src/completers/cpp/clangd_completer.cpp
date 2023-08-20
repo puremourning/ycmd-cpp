@@ -16,9 +16,12 @@
 #include <boost/process/io.hpp>
 #include <boost/process/search_path.hpp>
 #include <deque>
+#include <filesystem>
+#include <optional>
 #include <string_view>
 #include <unordered_map>
 #include <unordered_set>
+#include <variant>
 #include <vector>
 #include <function2/function2.hpp>
 #include <boost/process.hpp>
@@ -28,10 +31,21 @@
 #include "request_wrap.cpp"
 #include "lsp/lsp.hpp"
 #include "server.cpp"
+#include "util.hpp"
 #include "ycmd.hpp"
 
 namespace ycmd::completers::cpp {
   namespace process = boost::process;
+
+  std::string URI( std::string_view file_path )
+  {
+    return "file://" + std::string( file_path );
+  }
+
+  std::string URI( std::filesystem::path file_path )
+  {
+    return URI( std::string_view{ file_path.string() } );
+  }
 
   struct ClangdCompleter
   {
@@ -284,7 +298,7 @@ namespace ycmd::completers::cpp {
             "textDocument/didOpen",
             lsp::DidOpenTextDocumentParams {
               .textDocument{
-                .uri = filename,
+                .uri = URI(filename),
                 .languageId = filedata.filetypes[ 0 ],
                 .version = 1,
                 .text = filedata.contents,
@@ -302,7 +316,7 @@ namespace ycmd::completers::cpp {
             "textDocument/didChange",
             lsp::DidChangeTextDocumentParams {
               .textDocument{
-                { filename },
+                { URI( filename ) },
                 pos->second.version
               },
               .contentChanges{
@@ -354,7 +368,99 @@ namespace ycmd::completers::cpp {
 
       co_await sync_files( request_wrap );
 
-      co_return Candidates{};
+      lsp::ResponseMessage<lsp::CompletionsResponse> response = co_await get_response<lsp::CompletionsResponse>(
+        "textDocument/completion",
+        lsp::CompletionParams{
+          lsp::TextDocumentPositionParams{
+            .textDocument{
+              .uri = URI(request_wrap.req.filepath)
+            },
+            .position{
+              .line = (uint64_t)request_wrap.req.line_num - 1,
+              .character = request_wrap.column_codepoint() - 1,
+            },
+          },
+          std::nullopt,
+        } );
+
+      if ( response.error.has_value() || !response.result.has_value() )
+      {
+        co_return Candidates{};
+      }
+
+      lsp::CompletionItems& items = std::visit(
+        util::visitor{
+          []( lsp::CompletionList& list ) -> lsp::CompletionItems& {
+            return list.items;
+          },
+          []( lsp::CompletionItems& items ) -> lsp::CompletionItems& {
+            return items;
+          },
+        },
+        response.result.value() );
+
+      Candidates candidates;
+      for (const auto& item : items)
+      {
+        using enum lsp::CompletionItem::CompletionItemKind;
+        auto candidate = ycmd::api::Candidate{
+          .menu_text = item.label,
+          .detailed_info = item.detail.value_or(""),
+          .kind = item.kind == Text ? "text" :
+            item.kind == Method ? "method" :
+            item.kind == Function ? "function" :
+            item.kind == Constructor ? "constructor" :
+            item.kind == Field ? "field" :
+            item.kind == Variable ? "variable" :
+            item.kind == Class ? "class" :
+            item.kind == Interface ? "interface" :
+            item.kind == Module ? "module" :
+            item.kind == Property ? "property" :
+            item.kind == Unit ? "unit" :
+            item.kind == Value ? "value" :
+            item.kind == Enum ? "enum" :
+            item.kind == Keyword ? "keyword" :
+            item.kind == Snippet ? "snippet" :
+            item.kind == Color ? "color" :
+            item.kind == File ? "file" :
+            item.kind == Reference ? "reference" :
+            item.kind == Folder ? "folder" :
+            item.kind == EnumMember ? "enum-member" :
+            item.kind == Constant ? "constant" :
+            item.kind == Struct ? "struct" :
+            item.kind == Event ? "event" :
+            item.kind == Operator ? "operator" :
+            item.kind == TypeParameter ? "type-parameter" :
+            "unknown"
+        };
+        if ( item.documentation.has_value() )
+        {
+          std::visit( util::visitor{
+            [&]( const std::string& str ) {
+              candidate.detailed_info = str;
+            },
+            [&]( const lsp::MarkupContent& markup ) {
+              candidate.detailed_info = markup.value;
+            },
+          }, item.documentation.value() );
+        }
+
+        if ( item.textEdit.has_value() )
+        {
+          candidate.insertion_text = item.textEdit->newText;
+        }
+        else if ( item.insertText.has_value() )
+        {
+          candidate.insertion_text = item.insertText.value();
+        }
+        else
+        {
+          candidate.insertion_text = item.label;
+        }
+
+        candidates.push_back( std::move(candidate) );
+      }
+      co_return candidates;
     }
   };
 }

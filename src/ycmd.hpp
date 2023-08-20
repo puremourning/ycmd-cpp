@@ -17,9 +17,9 @@ namespace http = beast::http;
 
 using tcp = asio::ip::tcp;
 
-#include "json/json_serialisation.hpp"
-
 #define LOG BOOST_LOG_TRIVIAL
+
+#include "json/json_serialisation.hpp"
 
 namespace ycmd
 {
