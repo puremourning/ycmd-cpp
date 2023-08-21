@@ -155,28 +155,57 @@ namespace ycmd::handlers {
     co_return api::json_response( filtered_candidates );
   }
 
+  template< typename Completer, typename Request >
+  Async<void> handle_event_notification(
+    server::server& server,
+    const RequestWrapper< Request >& request_wrap,
+    std::optional< Completer> & completer )
+  {
+      if ( !completer.has_value() )
+      {
+        completer.emplace( server.user_options, server.ctx );
+        co_await completer->init( request_wrap );
+      }
+      co_return co_await completer->handle_event_notification( request_wrap );
+  }
+
   Result handle_event_notification( server::server& server, const Request& req )
   {
     auto request_wrap = make_request_wrap<requests::EventNotification>(req);
 
     LOG(debug) << "Event name: " << request_wrap.raw_req.at( "event_name" );
 
-    if ( request_wrap.first_filetype() == "cpp" )
+    auto handle_event_notification_semantic = [](
+      server::server& server,
+      const auto& request_wrap) -> Async<void>
     {
-      if ( !server.clangd_completer.has_value() )
+      switch( server.completer_for_request( request_wrap ) )
       {
-        server.clangd_completer.emplace( server.user_options, server.ctx );
-        co_await server.clangd_completer->init( request_wrap );
-      }
-      co_await server.clangd_completer->handle_event_notification(
-        request_wrap );
-    }
+        using enum server::server::SemanticCompleterKind;
+        case CLANGD:
+          co_return co_await handle_event_notification(
+            server,
+            request_wrap,
+            server.clangd_completer );
+          break;
 
-    // TODO: Do these "concurrently"
-    co_await server.identifier_completer.handle_event_notification(
-      request_wrap );
-    co_await server.filename_completer.handle_event_notification(
-      request_wrap.req );
+        case JEDI:
+          // co_return co_await handle_event_notification(
+          //    server,
+          //    request_wrap,
+          //    server.jedi_completer );
+          break;
+
+        case NONE:
+          break;
+      }
+    };
+
+    co_await (
+      handle_event_notification_semantic( server, request_wrap ) &&
+      server.identifier_completer.handle_event_notification( request_wrap ) &&
+      server.filename_completer.handle_event_notification( request_wrap.req )
+    );
 
     co_return api::json_response( json::object() );
   }
@@ -194,22 +223,36 @@ namespace ycmd::handlers {
       co_return api::json_response( json::array() );
     }
 
-    const auto& ft = request_wrap.first_filetype();
-
-    std::vector<api::Candidate> candidates;
-
-    if ( ft == "cpp" && server.clangd_completer.has_value() )
+    using CandidateArray = std::vector<api::Candidate>;
+    auto compute_candidates_semantic = [](
+      server::server& server,
+      const auto& request_wrap ) -> Async<CandidateArray>
     {
-      candidates = co_await server.clangd_completer->compute_candiatdes(
-        request_wrap );
-    }
+      switch( server.completer_for_request( request_wrap ) )
+      {
+        using enum server::server::SemanticCompleterKind;
+        case CLANGD:
+          co_return server.clangd_completer->compute_candiatdes( request_wrap );
+          break;
+
+        case JEDI:
+          // return server.jedi_completer->compute_candidates( request_wrap );
+          break;
+
+        case NONE:
+          break;
+      }
+      co_return CandidateArray{};
+    };
+
+    auto candidates = co_await compute_candidates_semantic( server,
+                                                            request_wrap );
 
     if ( !force_semantic && candidates.size() == 0 )
     {
       candidates = co_await server.identifier_completer.compute_candiatdes(
         request_wrap );
     }
-
 
     responses::CompletionsResponse response {
       .completions = std::move( candidates ),

@@ -17,6 +17,30 @@ namespace ycmd::server
     asio::io_context ctx;
     json user_options;
 
+    enum class SemanticCompleterKind
+    {
+      CLANGD,
+      JEDI,
+      NONE
+    };
+
+    template< typename Request >
+    SemanticCompleterKind completer_for_request(
+      const RequestWrapper<Request> &req )
+    {
+      if ( req.first_filetype() == "cpp" )
+      {
+        return SemanticCompleterKind::CLANGD;
+      }
+
+      if ( req.first_filetype() == "python" )
+      {
+        return SemanticCompleterKind::JEDI;
+      }
+
+      return SemanticCompleterKind::NONE;
+    }
+
     completers::general::IdentifierCompleter identifier_completer{user_options};
     completers::general::FilenameCompleter filename_completer;
     completers::general::UltiSnipsCompleter ultisnips_completer;
