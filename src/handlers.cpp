@@ -76,6 +76,7 @@ namespace ycmd::handlers {
     HANDLER_LIST
 #undef HANDLER
   };
+#undef HANDLER_LIST
 
   Result handle_healthy( server::server& server, const Request& req )
   {
@@ -232,11 +233,12 @@ namespace ycmd::handlers {
       {
         using enum server::server::SemanticCompleterKind;
         case CLANGD:
-          co_return server.clangd_completer->compute_candiatdes( request_wrap );
+          co_return co_await server.clangd_completer->compute_candiatdes( request_wrap );
           break;
 
         case JEDI:
-          // return server.jedi_completer->compute_candidates( request_wrap );
+          // co_return co_await server.jedi_completer->compute_candidates(
+          //   request_wrap );
           break;
 
         case NONE:

@@ -521,6 +521,33 @@ namespace lsp
   using CompletionsResponse = one_of< CompletionItems, CompletionList >;
 
 
+  struct Diagnostic
+  {
+    Range range;
+    optional< integer > severity;
+    optional< integer > code;
+    optional< string > source;
+    string message;
+
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE( Diagnostic,
+                                    range,
+                                    severity,
+                                    code,
+                                    source,
+                                    message );
+  };
+  struct PublishDiagnosticsParams
+  {
+    DocumentURI uri;
+    optional< integer > version;
+    array< Diagnostic > diagnostics;
+
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE( PublishDiagnosticsParams,
+                                    uri,
+                                    version,
+                                    diagnostics );
+  };
+
   // }}}
 }
 

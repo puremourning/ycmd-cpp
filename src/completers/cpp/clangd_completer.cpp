@@ -219,6 +219,11 @@ namespace ycmd::completers::cpp {
         responseMessage.template get<lsp::ResponseMessage<ResultType>>();
     }
 
+    Async<void> handle_notification( const lsp::NotificationMessage<lsp::PublishDiagnosticsParams>& msg )
+    {
+      co_return;
+    }
+
     Async<void> message_pump()
     {
       LOG(debug) << "Starting LSP message pump..." << std::endl;
@@ -233,24 +238,42 @@ namespace ycmd::completers::cpp {
           break;
         }
         LOG(debug) << "Got a message: " << *message;
-        if (message->contains("method"))
+        if (auto messagePos = message->find("method");
+            messagePos != message->end())
         {
+          auto method = messagePos->get<std::string_view>();
           // notification or request
-          if (message->contains("id"))
+          if ( auto idPos = message->find( "id" );
+               idPos != message->end() )
           {
+            auto id = idPos->get<lsp::ID>();
             // reverse-request
             // TODO
           }
           else
           {
             // notification
-            // TODO
+            #define NOTIFICATIONS_LIST \
+                NOTIFICATION( "textDocument/publishDiagnostics", \
+                              lsp::PublishDiagnosticsParams )
+
+            if (0) {}
+            #define NOTIFICATION( lspMethod, PARAMS ) \
+              else if ( method == lspMethod ) \
+              { \
+                co_await handle_notification( \
+                  message->get<lsp::NotificationMessage<PARAMS>>() ); \
+              }
+            NOTIFICATIONS_LIST;
+            #undef NOTIFICATION
+            #undef NOTIFICATIONS_LIST
           }
         }
-        else
+        else if ( auto idPos = message->find( "id" );
+                  idPos != message->end() )
         {
           // response
-          auto id = message->at("id");
+          auto id = idPos->get<lsp::ID>();
           auto pos = std::find_if( pending_requests.begin(),
                                    pending_requests.end(),
                                    [&]( const auto& r ) {
