@@ -27,7 +27,7 @@ class YcmdConan(ConanFile):
     "abseil/20220623.0",
     "gtest/1.13.0",
     "pybind11/2.10.1",
-    "function2/4.2.2"
+    "function2/4.2.2",
     "xxhash/0.8.2",
   )
 

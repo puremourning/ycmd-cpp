@@ -30,7 +30,6 @@
 #include "lsp/lsp_types.hpp"
 #include "request_wrap.cpp"
 #include "lsp/lsp.hpp"
-#include "server.cpp"
 #include "util.hpp"
 #include "ycmd.hpp"
 
@@ -44,7 +43,7 @@ namespace ycmd::completers::cpp {
     return "file://" + std::string( file_path );
   }
 
-  std::string URI( std::filesystem::path file_path )
+  std::string URI( const std::filesystem::path& file_path )
   {
     return URI( std::string_view{ file_path.string() } );
   }
