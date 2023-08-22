@@ -315,6 +315,10 @@ namespace ycmd::completers::cpp {
           pos->second.hash = hash;
           ++pos->second.version;
           // update file
+          std::vector<lsp::DidChangeTextDocumentParams::TextDocumentChangeEvent> events = {
+            { .text = filedata.contents },
+          };
+
           co_await lsp::send_notification(
             server_stdin,
             "textDocument/didChange",
@@ -323,11 +327,7 @@ namespace ycmd::completers::cpp {
                 { URI( filename ) },
                 pos->second.version
               },
-              .contentChanges{
-                lsp::DidChangeTextDocumentParams::TextDocumentChangeEvent{
-                  .text = filedata.contents
-                }
-              }
+              .contentChanges = std::move(events)
             } );
         }
       }
@@ -356,6 +356,7 @@ namespace ycmd::completers::cpp {
     }
 
     using Candidates = std::vector<ycmd::api::Candidate>;
+
     Async<Candidates> compute_candiatdes(
       const ycmd::RequestWrap& request_wrap )
     {

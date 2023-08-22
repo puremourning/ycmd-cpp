@@ -25,7 +25,10 @@ function(ycmd_target_compiler_setup target)
   else()
     target_compile_options( ${target}
       PRIVATE
-      -Wall -Wextra -Werror -fvisibility=hidden -Wno-unused-parameter
+      -Wall -Wextra -Werror -fvisibility=hidden
+      -Wno-unused-parameter
+      -Wno-missing-field-initializers
+      -fcoroutines
     )
     if ( ${ENABLE_ASAN} )
       target_compile_options( ${target}

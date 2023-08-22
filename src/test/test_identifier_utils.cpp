@@ -18,9 +18,9 @@ namespace
       .column_num = column_num,
       .filepath = "/foo",
       .file_data {
-        { "/foo", {
-          .filetypes{ "foo" },
-          .contents{ contents }
+        { "/foo", api::SimpleRequest::FileData{
+          .filetypes = { "foo" },
+          .contents = std::string{contents}
         } }
       }
     };

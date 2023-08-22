@@ -152,7 +152,9 @@ TEST_F(Fixture, optional_not_present_partial_object)
 {
   auto json_str = R"({"opt_int":10})";
   j = thetest::SimpleOptionalFields{
-    .opt_int{ 10 }
+    .opt_int{ 10 },
+    .opt_chr{},
+    .opt_str{}
   };
   EXPECT_EQ( j.dump(), json_str );
 

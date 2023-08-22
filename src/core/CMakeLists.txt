@@ -75,6 +75,13 @@ target_compile_definitions( YcmCore
     YCM_EXPORT=
 )
 
+if ( NOT MSVC )
+  target_compile_options( YcmCore
+    PRIVATE
+    -Wno-bidi-chars
+  )
+endif()
+
 ycmd_target_compiler_setup( YcmCore )
 
 target_link_libraries( YcmCore

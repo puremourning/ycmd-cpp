@@ -1,4 +1,4 @@
-find_package( gtest REQUIRED )
+find_package( GTest REQUIRED )
 
 list( APPEND YCMD_TESTS
   test_request_wrap

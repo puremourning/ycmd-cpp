@@ -133,7 +133,6 @@ namespace ycmd::server
         co_return;
       }
 
-      std::string_view t = { req.target().data(), req.target().length() };
       auto url = boost::urls::url_view( req.target() );
       auto handler = handlers::HANDLERS.find( { req.method(), url.path() } );
 
@@ -160,19 +159,19 @@ namespace ycmd::server
         } catch ( const ShutdownResult& s ) {
           response = std::move( s.response );
           do_shutdown = true;
+        } catch ( const boost::system::system_error& ec ) {
+          response.result(http::status::internal_server_error);
+          response.body() = json( responses::Error{
+            .exception = ec.what(),
+            .message = ec.code().message(),
+          }.set_traceback( boost::stacktrace::stacktrace() ) );
+          response.prepare_payload();
         } catch ( const std::exception& e ) {
           // unexpected exception!
           response.result(http::status::internal_server_error);
           response.body() = json( responses::Error{
             .exception = typeid(e).name(),
             .message = e.what(),
-          }.set_traceback( boost::stacktrace::stacktrace() ) );
-          response.prepare_payload();
-        } catch ( boost::system::system_error ec ) {
-          response.result(http::status::internal_server_error);
-          response.body() = json( responses::Error{
-            .exception = ec.what(),
-            .message = ec.code().message(),
           }.set_traceback( boost::stacktrace::stacktrace() ) );
           response.prepare_payload();
         }
@@ -223,7 +222,7 @@ namespace ycmd::server
   std::optional<json> read_options( std::string_view options_file_name )
   {
     // TODO: What if this faile? Thros and exception?
-    std::ifstream infile( options_file_name );
+    std::ifstream infile( std::string{options_file_name} );
     std::optional<json> user_options;
     try {
       user_options.emplace( json::parse( infile ) );

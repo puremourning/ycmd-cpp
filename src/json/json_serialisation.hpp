@@ -6,6 +6,7 @@
 #include <optional>
 #include <type_traits>
 #include <boost/log/trivial.hpp>
+#include <variant>
 
 using json = nlohmann::json;
 
@@ -178,7 +179,7 @@ namespace nlohmann
   };
 
   template <typename... Ts>
-  struct nlohmann::adl_serializer<std::variant<Ts...>>
+  struct adl_serializer<std::variant<Ts...>>
   {
     static void to_json(nlohmann::json &j, const std::variant<Ts...> &data)
     {
