@@ -160,19 +160,19 @@ namespace ycmd::server
         } catch ( const ShutdownResult& s ) {
           response = std::move( s.response );
           do_shutdown = true;
+        } catch ( boost::system::system_error ec ) {
+          response.result(http::status::internal_server_error);
+          response.body() = json( responses::Error{
+            .exception = ec.what(),
+            .message = ec.code().message(),
+          }.set_traceback( boost::stacktrace::stacktrace() ) );
+          response.prepare_payload();
         } catch ( const std::exception& e ) {
           // unexpected exception!
           response.result(http::status::internal_server_error);
           response.body() = json( responses::Error{
             .exception = typeid(e).name(),
             .message = e.what(),
-          }.set_traceback( boost::stacktrace::stacktrace() ) );
-          response.prepare_payload();
-        } catch ( boost::system::system_error ec ) {
-          response.result(http::status::internal_server_error);
-          response.body() = json( responses::Error{
-            .exception = ec.what(),
-            .message = ec.code().message(),
           }.set_traceback( boost::stacktrace::stacktrace() ) );
           response.prepare_payload();
         }

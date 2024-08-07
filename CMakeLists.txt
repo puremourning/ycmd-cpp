@@ -25,7 +25,9 @@ function(ycmd_target_compiler_setup target)
   else()
     target_compile_options( ${target}
       PRIVATE
-      -Wall -Wextra -Werror -fvisibility=hidden -Wno-unused-parameter
+      -Wall -Wextra -Werror -fvisibility=hidden
+      -Wno-unused-parameter
+      -Wno-missing-field-initializers
     )
     if ( ${ENABLE_ASAN} )
       target_compile_options( ${target}
@@ -46,6 +48,7 @@ function(ycmd_target_setup target)
     PRIVATE
       YcmCore
       YcmLsp
+      icu::icu
       Boost::boost
       Boost::log
       Boost::regex
@@ -77,6 +80,8 @@ option( ENABLE_ASAN "Build with address sanitizer" ON )
 
 # Always generate compilation database
 set( CMAKE_EXPORT_COMPILE_COMMANDS ON )
+
+find_package(ICU REQUIRED)
 
 find_package(Boost REQUIRED
   COMPONENTS

@@ -1,6 +1,5 @@
 from conan import ConanFile
 from conan.tools.cmake import CMakeToolchain, CMakeDeps, CMake, cmake_layout
-from conans import tools
 
 
 class YcmdConan(ConanFile):
@@ -29,18 +28,17 @@ class YcmdConan(ConanFile):
     "pybind11/2.10.1",
     "function2/4.2.2",
     "xxhash/0.8.2",
+    "icu/74.2",
   )
-
-  def validate(self):
-    tools.check_min_cppstd(self, "20")
 
   def layout(self):
     cmake_layout(self)
 
-  def configure(self):
+  def config_options(self):
     # A shame, but we need its stupid regex stuff to actually work.. ?
-    self.options['boost'].i18n_backend = "icu"
-    self.options['icu'].data_packaging = 'static'
+    self.options['boost/*'].i18n_backend_iconv = "off"
+    self.options['boost/*'].i18n_backend_icu = True
+    self.options['icu/*'].data_packaging = 'static'
 
   def generate(self):
     CMakeToolchain(self).generate()

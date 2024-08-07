@@ -15,17 +15,17 @@ PROFILE=default
 all: conaninstall_${TARGET} cmake_${TARGET} build
 
 prep: conaninstall_${TARGET}
-	${DEPS}/bin/conan build .
+	${DEPS}/bin/conan build --profile=${PROFILE} .
 	${DEPS}/bin/compdb -p build/${TARGET} list > compile_commands.json
 
 build:
-	cmake --build build/ --parallel 8 --preset ${PRESET}
+	cmake --build build/ --parallel 8 --preset conan-${PRESET}
 
 conaninstall_${TARGET}: ${DEPS} conanfile.py
-	${DEPS}/bin/conan install --profile=${PROFILE} -s compiler.cppstd=20 -s build_type=${TARGET} . --build missing
+	${DEPS}/bin/conan install --profile=${PROFILE} -s compiler.cppstd=gnu20 -s build_type=${TARGET} . --build missing
 
 cmake_${TARGET}: conaninstall_${TARGET}
-	${DEPS}/bin/cmake --preset ${PRESET}
+	${DEPS}/bin/cmake --preset conan-${PRESET}
 	${DEPS}/bin/compdb -p build/${TARGET} list > compile_commands.json
 
 ${DEPS}: dev_requirements.txt

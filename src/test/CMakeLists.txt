@@ -27,5 +27,6 @@ endforeach()
 add_executable( test_regex test_regex.cpp )
 target_link_libraries( test_regex
   PRIVATE
+    icu::icu
     Boost::regex
 )
